@@ -1,6 +1,8 @@
 import Setting from "../models/Setting";
 import AppError from "../errors/AppError";
 
+export const ALLOWED_GLOBAL_FALLBACK_KEYS = ["userCreation", "CheckMsgIsGroup"];
+
 const CheckSettings = async (
   key: string,
   companyId: number = 1
@@ -9,8 +11,12 @@ const CheckSettings = async (
     where: { key, companyId }
   });
 
-  // Fallback para Empresa Padrão (id 1) caso a empresa ainda não tenha a configuração criada
-  if (!setting && companyId !== 1) {
+  // Fallback para Empresa Padrão (id 1) estritamente restrito a configurações globais não-sensíveis
+  if (
+    !setting &&
+    companyId !== 1 &&
+    ALLOWED_GLOBAL_FALLBACK_KEYS.includes(key)
+  ) {
     setting = await Setting.findOne({
       where: { key, companyId: 1 }
     });

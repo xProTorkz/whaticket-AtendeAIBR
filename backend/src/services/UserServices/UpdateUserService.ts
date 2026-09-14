@@ -11,6 +11,8 @@ interface UserData {
   profile?: string;
   queueIds?: number[];
   whatsappId?: number;
+  companyId?: number;
+  isSuperAdmin?: boolean;
 }
 
 interface Request {
@@ -25,6 +27,7 @@ interface Response {
   email: string;
   profile: string;
   companyId: number;
+  isSuperAdmin?: boolean;
 }
 
 const UpdateUserService = async ({
@@ -47,7 +50,9 @@ const UpdateUserService = async ({
     profile,
     name,
     queueIds = [],
-    whatsappId
+    whatsappId,
+    companyId: newCompanyId,
+    isSuperAdmin
   } = userData;
 
   try {
@@ -56,13 +61,23 @@ const UpdateUserService = async ({
     throw new AppError(err.message);
   }
 
-  await user.update({
+  const updateData: any = {
     email,
     password,
     profile,
     name,
     whatsappId: whatsappId ? whatsappId : null
-  });
+  };
+
+  if (newCompanyId !== undefined) {
+    updateData.companyId = newCompanyId;
+  }
+
+  if (isSuperAdmin !== undefined) {
+    updateData.isSuperAdmin = isSuperAdmin;
+  }
+
+  await user.update(updateData);
 
   await user.$set("queues", queueIds);
 

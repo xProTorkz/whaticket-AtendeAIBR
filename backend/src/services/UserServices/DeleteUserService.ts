@@ -5,7 +5,8 @@ import UpdateDeletedUserOpenTicketsStatus from "../../helpers/UpdateDeletedUserO
 
 const DeleteUserService = async (
   id: string | number,
-  companyId?: number
+  companyId?: number,
+  actorIsSuperAdmin?: boolean
 ): Promise<void> => {
   const where: any = { id };
   if (companyId) {
@@ -18,6 +19,13 @@ const DeleteUserService = async (
 
   if (!user) {
     throw new AppError("ERR_NO_USER_FOUND", 404);
+  }
+
+  if (user.isSuperAdmin && !actorIsSuperAdmin) {
+    throw new AppError(
+      "ERR_CANNOT_DELETE_SUPERADMIN: Apenas outro SuperAdmin pode excluir um usuário SuperAdmin.",
+      403
+    );
   }
 
   const userOpenTickets: Ticket[] = await user.$get("tickets", {

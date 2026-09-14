@@ -209,6 +209,15 @@ const messages = {
           password: "Senha",
           profile: "Perfil",
           whatsapp: "Conexão Padrão",
+          isSuperAdmin: "Super Administrador (Acesso Global)",
+          profiles: {
+            visitor: "Visitante",
+            collaborator: "Colaborador",
+            agent: "Atendente",
+            manager: "Gerente",
+            admin: "Administrador",
+            user: "Usuário (Legado)",
+          },
         },
         buttons: {
           okAdd: "Adicionar",

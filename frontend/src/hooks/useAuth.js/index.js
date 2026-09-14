@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useHistory } from "react-router-dom";
 import openSocket from "../../services/socket-io";
 
@@ -13,6 +13,7 @@ const useAuth = () => {
 	const [isAuth, setIsAuth] = useState(false);
 	const [loading, setLoading] = useState(true);
 	const [user, setUser] = useState({});
+	const socketRef = useRef(null);
 
 	api.interceptors.request.use(
 		config => {
@@ -46,8 +47,11 @@ const useAuth = () => {
 			}
 			if (error?.response?.status === 401) {
 				localStorage.removeItem("token");
+				localStorage.removeItem("companyId");
+				localStorage.removeItem("userId");
 				api.defaults.headers.Authorization = undefined;
 				setIsAuth(false);
+				setUser({});
 			}
 			return Promise.reject(error);
 		}
@@ -71,7 +75,9 @@ const useAuth = () => {
 	}, []);
 
 	useEffect(() => {
+		if (!user?.id) return;
 		const socket = openSocket();
+		socketRef.current = socket;
 
 		socket.on("user", data => {
 			if (data.action === "update" && data.user.id === user.id) {
@@ -81,8 +87,9 @@ const useAuth = () => {
 
 		return () => {
 			socket.disconnect();
+			socketRef.current = null;
 		};
-	}, [user]);
+	}, [user?.id]);
 
 	const handleLogin = async userData => {
 		setLoading(true);
@@ -107,15 +114,21 @@ const useAuth = () => {
 
 		try {
 			await api.delete("/auth/logout");
-			setIsAuth(false);
-			setUser({});
-			localStorage.removeItem("token");
-			api.defaults.headers.Authorization = undefined;
-			setLoading(false);
-			history.push("/login");
 		} catch (err) {
 			toastError(err);
+		} finally {
+			if (socketRef.current) {
+				socketRef.current.disconnect();
+				socketRef.current = null;
+			}
+			localStorage.removeItem("token");
+			localStorage.removeItem("companyId");
+			localStorage.removeItem("userId");
+			api.defaults.headers.Authorization = undefined;
+			setIsAuth(false);
+			setUser({});
 			setLoading(false);
+			history.push("/login");
 		}
 	};
 

@@ -17,7 +17,9 @@ import {
 	FormControl,
 	TextField,
 	InputAdornment,
-	IconButton
+	IconButton,
+	FormControlLabel,
+	Switch
   } from '@material-ui/core';
 
 import { Visibility, VisibilityOff } from '@material-ui/icons';
@@ -80,7 +82,8 @@ const UserModal = ({ open, onClose, userId }) => {
 		name: "",
 		email: "",
 		password: "",
-		profile: "user"
+		profile: "agent",
+		isSuperAdmin: false
 	};
 
 	const { user: loggedInUser } = useContext(AuthContext);
@@ -97,7 +100,12 @@ const UserModal = ({ open, onClose, userId }) => {
 			try {
 				const { data } = await api.get(`/users/${userId}`);
 				setUser(prevState => {
-					return { ...prevState, ...data };
+					return {
+						...prevState,
+						...data,
+						profile: data.profile || "agent",
+						isSuperAdmin: Boolean(data.isSuperAdmin)
+					};
 				});
 				const userQueueIds = data.queues?.map(queue => queue.id);
 				setSelectedQueueIds(userQueueIds);
@@ -117,6 +125,10 @@ const UserModal = ({ open, onClose, userId }) => {
 
 	const handleSaveUser = async values => {
 		const userData = { ...values, whatsappId, queueIds: selectedQueueIds };
+		if (!loggedInUser?.isSuperAdmin) {
+			delete userData.isSuperAdmin;
+			delete userData.companyId;
+		}
 		try {
 			if (userId) {
 				await api.put(`/users/${userId}`, userData);
@@ -227,14 +239,51 @@ const UserModal = ({ open, onClose, userId }) => {
 														id="profile-selection"
 														required
 													>
-														<MenuItem value="admin">Admin</MenuItem>
-														<MenuItem value="user">User</MenuItem>
+														<MenuItem value="visitor">
+															{i18n.t("userModal.form.profiles.visitor", "Visitante")}
+														</MenuItem>
+														<MenuItem value="collaborator">
+															{i18n.t("userModal.form.profiles.collaborator", "Colaborador")}
+														</MenuItem>
+														<MenuItem value="agent">
+															{i18n.t("userModal.form.profiles.agent", "Atendente")}
+														</MenuItem>
+														<MenuItem value="manager">
+															{i18n.t("userModal.form.profiles.manager", "Gerente")}
+														</MenuItem>
+														<MenuItem value="admin">
+															{i18n.t("userModal.form.profiles.admin", "Administrador")}
+														</MenuItem>
+														{user.profile === "user" && (
+															<MenuItem value="user">
+																{i18n.t("userModal.form.profiles.user", "Usuário (Legado)")}
+															</MenuItem>
+														)}
 													</Field>
 												</>
 											)}
 										/>
 									</FormControl>
 								</div>
+								{loggedInUser?.isSuperAdmin && (
+									<div className={classes.multFieldLine} style={{ marginTop: 8, marginBottom: 8, paddingLeft: 4 }}>
+										<Field name="isSuperAdmin">
+											{({ field, form }) => (
+												<FormControlLabel
+													control={
+														<Switch
+															checked={Boolean(field.value)}
+															onChange={e => form.setFieldValue("isSuperAdmin", e.target.checked)}
+															color="secondary"
+															name="isSuperAdmin"
+														/>
+													}
+													label={i18n.t("userModal.form.isSuperAdmin", "Super Administrador (Acesso Global)")}
+												/>
+											)}
+										</Field>
+									</div>
+								)}
 								<Can
 									role={loggedInUser.profile}
 									perform="user-modal:editQueues"

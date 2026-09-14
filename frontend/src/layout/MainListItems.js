@@ -77,14 +77,20 @@ const MainListItems = (props) => {
         primary="Dashboard"
         icon={<DashboardOutlinedIcon />}
       />
-      <ListItemLink
-        to="/connections"
-        primary={i18n.t("mainDrawer.listItems.connections")}
-        icon={
-          <Badge badgeContent={connectionWarning ? "!" : 0} color="error">
-            <SyncAltIcon />
-          </Badge>
-        }
+      <Can
+        role={user.profile}
+        perform="drawer-connections:view"
+        yes={() => (
+          <ListItemLink
+            to="/connections"
+            primary={i18n.t("mainDrawer.listItems.connections")}
+            icon={
+              <Badge badgeContent={connectionWarning ? "!" : 0} color="error">
+                <SyncAltIcon />
+              </Badge>
+            }
+          />
+        )}
       />
       <ListItemLink
         to="/tickets"
@@ -92,19 +98,31 @@ const MainListItems = (props) => {
         icon={<WhatsAppIcon />}
       />
 
-      <ListItemLink
-        to="/contacts"
-        primary={i18n.t("mainDrawer.listItems.contacts")}
-        icon={<ContactPhoneOutlinedIcon />}
-      />
-      <ListItemLink
-        to="/quickAnswers"
-        primary={i18n.t("mainDrawer.listItems.quickAnswers")}
-        icon={<QuestionAnswerOutlinedIcon />}
+      <Can
+        role={user.profile}
+        perform="drawer-contacts:view"
+        yes={() => (
+          <ListItemLink
+            to="/contacts"
+            primary={i18n.t("mainDrawer.listItems.contacts")}
+            icon={<ContactPhoneOutlinedIcon />}
+          />
+        )}
       />
       <Can
         role={user.profile}
-        perform="drawer-admin-items:view"
+        perform="drawer-quick-answers:view"
+        yes={() => (
+          <ListItemLink
+            to="/quickAnswers"
+            primary={i18n.t("mainDrawer.listItems.quickAnswers")}
+            icon={<QuestionAnswerOutlinedIcon />}
+          />
+        )}
+      />
+      <Can
+        role={user.profile}
+        perform="drawer-manager-items:view"
         yes={() => (
           <>
             <Divider />
@@ -121,10 +139,16 @@ const MainListItems = (props) => {
               primary={i18n.t("mainDrawer.listItems.queues")}
               icon={<AccountTreeOutlinedIcon />}
             />
-            <ListItemLink
-              to="/settings"
-              primary={i18n.t("mainDrawer.listItems.settings")}
-              icon={<SettingsOutlinedIcon />}
+            <Can
+              role={user.profile}
+              perform="drawer-settings:view"
+              yes={() => (
+                <ListItemLink
+                  to="/settings"
+                  primary={i18n.t("mainDrawer.listItems.settings")}
+                  icon={<SettingsOutlinedIcon />}
+                />
+              )}
             />
           </>
         )}

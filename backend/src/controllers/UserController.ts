@@ -31,11 +31,22 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
 
 export const store = async (req: Request, res: Response): Promise<Response> => {
   const { email, password, name, profile, queueIds, whatsappId } = req.body;
-  const companyId = req.user?.companyId || 1;
+  let targetCompanyId = req.user?.companyId || 1;
+  let targetIsSuperAdmin = false;
+
+  // Apenas SuperAdmin global pode criar superadmins ou designar tenants arbitrários
+  if (req.user?.isSuperAdmin) {
+    if (req.body.companyId) {
+      targetCompanyId = Number(req.body.companyId);
+    }
+    if (req.body.isSuperAdmin !== undefined) {
+      targetIsSuperAdmin = Boolean(req.body.isSuperAdmin);
+    }
+  }
 
   if (
     req.url === "/signup" &&
-    (await CheckSettingsHelper("userCreation", companyId)) === "disabled"
+    (await CheckSettingsHelper("userCreation", targetCompanyId)) === "disabled"
   ) {
     throw new AppError("ERR_USER_CREATION_DISABLED", 403);
   } else if (
@@ -53,20 +64,21 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     profile,
     queueIds,
     whatsappId,
-    companyId
+    companyId: targetCompanyId,
+    isSuperAdmin: targetIsSuperAdmin
   });
 
   CreateAuditLogService({
-    companyId,
+    companyId: targetCompanyId,
     userId: req.user?.id ? Number(req.user.id) : undefined,
-    action: "USER_CREATE",
+    action: targetIsSuperAdmin ? "SUPERADMIN_CREATE" : "USER_CREATE",
     entity: "User",
     entityId: user.id,
-    details: { email: user.email, profile: user.profile, name: user.name }
+    details: { email: user.email, profile: user.profile, name: user.name, isSuperAdmin: targetIsSuperAdmin }
   });
 
   const io = getIO();
-  io.emit(`company-${companyId}-user`, {
+  io.emit(`company-${targetCompanyId}-user`, {
     action: "create",
     user
   });
@@ -98,15 +110,43 @@ export const update = async (
     throw new AppError("ERR_NO_PERMISSION", 403);
   }
 
-  const userData = req.body;
-  // Non-admins cannot elevate profile or company
+  const userData = { ...req.body };
+
+  // Usuários que NÃO são SuperAdmin NÃO podem alterar isSuperAdmin nem companyId
+  if (!req.user.isSuperAdmin) {
+    delete userData.isSuperAdmin;
+    delete userData.companyId;
+  }
+
+  // Usuários que não são admins não podem alterar seus próprios cargos
   if (req.user.profile !== "admin" && !req.user.isSuperAdmin) {
     delete userData.profile;
-    delete userData.companyId;
-    delete userData.isSuperAdmin;
   }
 
   const companyId = req.user?.isSuperAdmin ? undefined : req.user?.companyId;
+
+  // Busca usuário atual para verificar alterações sensíveis de governança
+  const currentUser = await ShowUserService(userId, companyId);
+
+  if (
+    req.user.isSuperAdmin &&
+    userData.isSuperAdmin !== undefined &&
+    Boolean(userData.isSuperAdmin) !== Boolean(currentUser.isSuperAdmin)
+  ) {
+    CreateAuditLogService({
+      companyId: currentUser.companyId || req.user.companyId || 1,
+      userId: Number(req.user.id),
+      action: userData.isSuperAdmin ? "SUPERADMIN_PROMOTION" : "SUPERADMIN_REVOCATION",
+      entity: "User",
+      entityId: userId,
+      details: {
+        targetEmail: currentUser.email,
+        previousState: currentUser.isSuperAdmin,
+        newState: userData.isSuperAdmin,
+        actorId: req.user.id
+      }
+    });
+  }
 
   const user = await UpdateUserService({ userData, userId, companyId });
 
@@ -144,7 +184,7 @@ export const remove = async (
 
   const companyId = req.user?.isSuperAdmin ? undefined : req.user?.companyId;
 
-  await DeleteUserService(userId, companyId);
+  await DeleteUserService(userId, companyId, req.user?.isSuperAdmin);
 
   CreateAuditLogService({
     companyId: req.user.companyId,
