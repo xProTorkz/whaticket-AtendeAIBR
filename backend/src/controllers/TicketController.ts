@@ -107,7 +107,8 @@ export const update = async (
   const { ticket } = await UpdateTicketService({
     ticketData,
     ticketId,
-    companyId
+    companyId,
+    actorUser: req.user
   });
 
   if (ticket.status === "closed") {

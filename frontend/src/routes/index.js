@@ -13,6 +13,7 @@ import Users from "../pages/Users";
 import Contacts from "../pages/Contacts/";
 import QuickAnswers from "../pages/QuickAnswers/";
 import Queues from "../pages/Queues/";
+import InternalChat from "../pages/InternalChat/";
 import { AuthProvider } from "../context/Auth/AuthContext";
 import { WhatsAppsProvider } from "../context/WhatsApp/WhatsAppsContext";
 import { ThemeProvider } from "../context/DarkMode";
@@ -30,6 +31,7 @@ const Routes = () => {
               <LoggedInLayout>
                 <Route exact path="/" component={Dashboard} isPrivate />
                 <Route exact path="/tickets/:ticketId?" component={Tickets} isPrivate />
+                <Route exact path="/internal-chat" component={InternalChat} isPrivate allowedRoles={["visitor", "collaborator", "agent", "user", "manager", "admin", "superadmin"]} />
                 <Route exact path="/connections" component={Connections} isPrivate allowedRoles={["admin", "superadmin"]} />
                 <Route exact path="/contacts" component={Contacts} isPrivate allowedRoles={["collaborator", "agent", "user", "manager", "admin", "superadmin"]} />
                 <Route exact path="/users" component={Users} isPrivate allowedRoles={["manager", "admin", "superadmin"]} />

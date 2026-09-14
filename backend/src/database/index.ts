@@ -13,6 +13,8 @@ import UserQueue from "../models/UserQueue";
 import QuickAnswer from "../models/QuickAnswer";
 import WppKey from "../models/WppKey";
 import AuditLog from "../models/AuditLog";
+import TicketNote from "../models/TicketNote";
+import InternalMessage from "../models/InternalMessage";
 
 // eslint-disable-next-line
 const dbConfig = require("../config/database");
@@ -33,7 +35,9 @@ const models = [
   UserQueue,
   QuickAnswer,
   WppKey,
-  AuditLog
+  AuditLog,
+  TicketNote,
+  InternalMessage
 ];
 
 sequelize.addModels(models);

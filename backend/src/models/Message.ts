@@ -52,6 +52,10 @@ class Message extends Model<Message> {
   @Column
   isDeleted: boolean;
 
+  @Default("whatsapp")
+  @Column
+  channel: string;
+
   @Default(1)
   @ForeignKey(() => Company)
   @Column

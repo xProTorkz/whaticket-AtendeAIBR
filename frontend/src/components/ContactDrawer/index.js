@@ -16,6 +16,7 @@ import { i18n } from "../../translate/i18n";
 import ContactModal from "../ContactModal";
 import ContactDrawerSkeleton from "../ContactDrawerSkeleton";
 import MarkdownWrapper from "../MarkdownWrapper";
+import TicketNotes from "../TicketNotes";
 
 const drawerWidth = 320;
 
@@ -81,7 +82,7 @@ const useStyles = makeStyles(theme => ({
 	},
 }));
 
-const ContactDrawer = ({ open, handleDrawerClose, contact, loading }) => {
+const ContactDrawer = ({ open, handleDrawerClose, contact, ticket, loading }) => {
 	const classes = useStyles();
 
 	const [modalOpen, setModalOpen] = useState(false);
@@ -156,6 +157,7 @@ const ContactDrawer = ({ open, handleDrawerClose, contact, loading }) => {
 							</Paper>
 						))}
 					</Paper>
+					{ticket?.id && <TicketNotes ticketId={ticket.id} />}
 				</div>
 			)}
 		</Drawer>

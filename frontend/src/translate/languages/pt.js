@@ -289,6 +289,40 @@ const messages = {
           cancel: "Cancelar",
         },
       },
+      ticketNotes: {
+        title: "Notas Internas",
+        subtitle: "Visível apenas para a equipe interna. Nunca enviado ao cliente.",
+        placeholder: "Escreva uma nota interna sobre este atendimento...",
+        buttons: {
+          add: "Salvar Nota",
+          adding: "Salvando...",
+        },
+        empty: "Nenhuma nota interna registrada para este ticket.",
+        toasts: {
+          success: "Nota interna adicionada com sucesso!",
+          deleted: "Nota interna excluída!",
+        },
+      },
+      internalChat: {
+        title: "Chat Interno",
+        subtitle: "Comunicação em tempo real entre membros da equipe",
+        securityNotice: "🔒 Mensagens isoladas exclusivamente para a equipe da sua empresa.",
+        searchPlaceholder: "Buscar colega por nome ou email...",
+        selectColleague: "Selecione um colega para iniciar ou continuar a conversa.",
+        inputPlaceholder: "Digite uma mensagem interna...",
+        send: "Enviar",
+        unread: "não lida(s)",
+        emptyMessages: "Nenhuma mensagem anterior. Diga olá para seu colega!",
+        roles: {
+          superadmin: "Superadmin",
+          admin: "Administrador",
+          manager: "Gerente",
+          agent: "Atendente",
+          collaborator: "Colaborador",
+          visitor: "Visitante",
+          user: "Usuário",
+        },
+      },
       mainDrawer: {
         listItems: {
           dashboard: "Dashboard",
@@ -297,6 +331,7 @@ const messages = {
           contacts: "Contatos",
           quickAnswers: "Respostas Rápidas",
           queues: "Filas",
+          internalChat: "Chat Interno",
           administration: "Administração",
           users: "Usuários",
           settings: "Configurações",

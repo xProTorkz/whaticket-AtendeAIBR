@@ -18,6 +18,7 @@ import Queue from "./Queue";
 import User from "./User";
 import Whatsapp from "./Whatsapp";
 import Company from "./Company";
+import TicketNote from "./TicketNote";
 
 @Table
 class Ticket extends Model<Ticket> {
@@ -81,8 +82,15 @@ class Ticket extends Model<Ticket> {
   @BelongsTo(() => Queue)
   queue: Queue;
 
+  @Default("whatsapp")
+  @Column
+  channel: string;
+
   @HasMany(() => Message)
   messages: Message[];
+
+  @HasMany(() => TicketNote)
+  notes: TicketNote[];
 }
 
 export default Ticket;

@@ -27,19 +27,39 @@ export const initIO = (httpServer: Server): SocketIO => {
     }
 
     logger.info("Client Connected");
+
+    const companyId = (tokenData as any)?.companyId || 1;
+    const userId = (tokenData as any)?.id;
+
+    // Salas automáticas do tenant
+    socket.join(`company-${companyId}`);
+    if (userId) {
+      socket.join(`company-${companyId}-user-${userId}`);
+    }
+    socket.join(`company-${companyId}-internal-chat`);
+
     socket.on("joinChatBox", (ticketId: string) => {
-      logger.info("A client joined a ticket channel");
+      logger.info(`A client joined ticket channel: ${ticketId}`);
       socket.join(ticketId);
+      socket.join(`company-${companyId}-ticket-${ticketId}`);
+      socket.join(`company-${companyId}-ticket-${ticketId}-notes`);
     });
 
     socket.on("joinNotification", () => {
       logger.info("A client joined notification channel");
       socket.join("notification");
+      socket.join(`company-${companyId}-notification`);
     });
 
     socket.on("joinTickets", (status: string) => {
       logger.info(`A client joined to ${status} tickets channel.`);
       socket.join(status);
+      socket.join(`company-${companyId}-${status}`);
+    });
+
+    socket.on("joinInternalChat", () => {
+      logger.info("A client joined internal chat channel");
+      socket.join(`company-${companyId}-internal-chat`);
     });
 
     socket.on("disconnect", () => {

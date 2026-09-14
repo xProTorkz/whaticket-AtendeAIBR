@@ -13,6 +13,8 @@ import queueRoutes from "./queueRoutes";
 import quickAnswerRoutes from "./quickAnswerRoutes";
 import apiRoutes from "./apiRoutes";
 import companyRoutes from "./companyRoutes";
+import ticketNoteRoutes from "./ticketNoteRoutes";
+import internalChatRoutes from "./internalChatRoutes";
 
 const routes = Router();
 
@@ -24,6 +26,8 @@ routes.use("/auth", authRoutes);
 routes.use(settingRoutes);
 routes.use(contactRoutes);
 routes.use(ticketRoutes);
+routes.use(ticketNoteRoutes);
+routes.use(internalChatRoutes);
 routes.use(whatsappRoutes);
 routes.use(messageRoutes);
 routes.use(whatsappSessionRoutes);
