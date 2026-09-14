@@ -19,6 +19,7 @@ interface WhatsappData {
 interface Request {
   whatsappData: WhatsappData;
   whatsappId: string;
+  companyId?: number;
 }
 
 interface Response {
@@ -28,7 +29,8 @@ interface Response {
 
 const UpdateWhatsAppService = async ({
   whatsappData,
-  whatsappId
+  whatsappId,
+  companyId
 }: Request): Promise<Response> => {
   const schema = Yup.object().shape({
     name: Yup.string().min(2),
@@ -48,7 +50,7 @@ const UpdateWhatsAppService = async ({
 
   try {
     await schema.validate({ name, status, isDefault });
-  } catch (err) {
+  } catch (err: any) {
     throw new AppError(err.message);
   }
 
@@ -59,15 +61,19 @@ const UpdateWhatsAppService = async ({
   let oldDefaultWhatsapp: Whatsapp | null = null;
 
   if (isDefault) {
-    oldDefaultWhatsapp = await Whatsapp.findOne({
-      where: { isDefault: true, id: { [Op.not]: whatsappId } }
-    });
+    const where: any = {
+      isDefault: true,
+      id: { [Op.not]: whatsappId }
+    };
+    if (companyId) where.companyId = companyId;
+
+    oldDefaultWhatsapp = await Whatsapp.findOne({ where });
     if (oldDefaultWhatsapp) {
       await oldDefaultWhatsapp.update({ isDefault: false });
     }
   }
 
-  const whatsapp = await ShowWhatsAppService(whatsappId);
+  const whatsapp = await ShowWhatsAppService(whatsappId, companyId);
 
   await whatsapp.update({
     name,

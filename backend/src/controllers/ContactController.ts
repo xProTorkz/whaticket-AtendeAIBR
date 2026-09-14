@@ -13,6 +13,7 @@ import CheckIsValidContact from "../services/WbotServices/CheckIsValidContact";
 import GetProfilePicUrl from "../services/WbotServices/GetProfilePicUrl";
 import AppError from "../errors/AppError";
 import GetContactService from "../services/ContactServices/GetContactService";
+import CreateAuditLogService from "../services/AuditServices/CreateAuditLogService";
 
 type IndexQuery = {
   searchParam: string;
@@ -37,10 +38,12 @@ interface ContactData {
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
   const { searchParam, pageNumber } = req.query as IndexQuery;
+  const companyId = req.user?.companyId || 1;
 
   const { contacts, count, hasMore } = await ListContactsService({
     searchParam,
-    pageNumber
+    pageNumber,
+    companyId
   });
 
   return res.json({ contacts, count, hasMore });
@@ -51,10 +54,12 @@ export const getContact = async (
   res: Response
 ): Promise<Response> => {
   const { name, number } = req.body as IndexGetContactQuery;
+  const companyId = req.user?.companyId || 1;
 
   const contact = await GetContactService({
     name,
-    number
+    number,
+    companyId
   });
 
   return res.status(200).json(contact);
@@ -62,6 +67,8 @@ export const getContact = async (
 
 export const store = async (req: Request, res: Response): Promise<Response> => {
   const newContact: ContactData = req.body;
+  const companyId = req.user?.companyId || 1;
+
   newContact.number = newContact.number.replace("-", "").replace(" ", "");
 
   const schema = Yup.object().shape({
@@ -73,7 +80,7 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
 
   try {
     await schema.validate(newContact);
-  } catch (err) {
+  } catch (err: any) {
     throw new AppError(err.message);
   }
 
@@ -92,10 +99,24 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     number,
     email,
     extraInfo,
-    profilePicUrl
+    profilePicUrl,
+    companyId
+  });
+
+  CreateAuditLogService({
+    companyId,
+    userId: Number(req.user.id),
+    action: "CONTACT_CREATE",
+    entity: "Contact",
+    entityId: contact.id,
+    details: { name: contact.name, number: contact.number }
   });
 
   const io = getIO();
+  io.emit(`company-${companyId}-contact`, {
+    action: "create",
+    contact
+  });
   io.emit("contact", {
     action: "create",
     contact
@@ -106,8 +127,9 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
 
 export const show = async (req: Request, res: Response): Promise<Response> => {
   const { contactId } = req.params;
+  const companyId = req.user?.isSuperAdmin ? undefined : req.user?.companyId;
 
-  const contact = await ShowContactService(contactId);
+  const contact = await ShowContactService(contactId, companyId);
 
   return res.status(200).json(contact);
 };
@@ -117,6 +139,7 @@ export const update = async (
   res: Response
 ): Promise<Response> => {
   const contactData: ContactData = req.body;
+  const companyId = req.user?.isSuperAdmin ? undefined : req.user?.companyId;
 
   const schema = Yup.object().shape({
     name: Yup.string(),
@@ -128,7 +151,7 @@ export const update = async (
 
   try {
     await schema.validate(contactData);
-  } catch (err) {
+  } catch (err: any) {
     throw new AppError(err.message);
   }
 
@@ -136,9 +159,22 @@ export const update = async (
 
   const { contactId } = req.params;
 
-  const contact = await UpdateContactService({ contactData, contactId });
+  const contact = await UpdateContactService({ contactData, contactId, companyId });
+
+  CreateAuditLogService({
+    companyId: req.user.companyId,
+    userId: Number(req.user.id),
+    action: "CONTACT_UPDATE",
+    entity: "Contact",
+    entityId: contactId,
+    details: contactData
+  });
 
   const io = getIO();
+  io.emit(`company-${req.user.companyId}-contact`, {
+    action: "update",
+    contact
+  });
   io.emit("contact", {
     action: "update",
     contact
@@ -152,10 +188,23 @@ export const remove = async (
   res: Response
 ): Promise<Response> => {
   const { contactId } = req.params;
+  const companyId = req.user?.isSuperAdmin ? undefined : req.user?.companyId;
 
-  await DeleteContactService(contactId);
+  await DeleteContactService(contactId, companyId);
+
+  CreateAuditLogService({
+    companyId: req.user.companyId,
+    userId: Number(req.user.id),
+    action: "CONTACT_DELETE",
+    entity: "Contact",
+    entityId: contactId
+  });
 
   const io = getIO();
+  io.emit(`company-${req.user.companyId}-contact`, {
+    action: "delete",
+    contactId
+  });
   io.emit("contact", {
     action: "delete",
     contactId

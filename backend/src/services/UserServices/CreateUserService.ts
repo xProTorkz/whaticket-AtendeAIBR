@@ -11,6 +11,8 @@ interface Request {
   queueIds?: number[];
   profile?: string;
   whatsappId?: number;
+  companyId?: number;
+  isSuperAdmin?: boolean;
 }
 
 interface Response {
@@ -18,6 +20,7 @@ interface Response {
   name: string;
   id: number;
   profile: string;
+  companyId: number;
 }
 
 const CreateUserService = async ({
@@ -26,7 +29,9 @@ const CreateUserService = async ({
   name,
   queueIds = [],
   profile = "admin",
-  whatsappId
+  whatsappId,
+  companyId = 1,
+  isSuperAdmin = false
 }: Request): Promise<Response> => {
   const schema = Yup.object().shape({
     name: Yup.string().required().min(2),
@@ -49,7 +54,7 @@ const CreateUserService = async ({
 
   try {
     await schema.validate({ email, password, name });
-  } catch (err) {
+  } catch (err: any) {
     throw new AppError(err.message);
   }
 
@@ -59,6 +64,8 @@ const CreateUserService = async ({
       password,
       name,
       profile,
+      companyId: companyId || 1,
+      isSuperAdmin: Boolean(isSuperAdmin),
       whatsappId: whatsappId ? whatsappId : null
     },
     { include: ["queues", "whatsapp"] }

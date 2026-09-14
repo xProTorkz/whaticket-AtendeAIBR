@@ -1,10 +1,14 @@
 import QuickAnswer from "../../models/QuickAnswer";
 import AppError from "../../errors/AppError";
 
-const DeleteQuickAnswerService = async (id: string): Promise<void> => {
-  const quickAnswer = await QuickAnswer.findOne({
-    where: { id }
-  });
+const DeleteQuickAnswerService = async (
+  id: string,
+  companyId?: number
+): Promise<void> => {
+  const where: any = { id };
+  if (companyId) where.companyId = companyId;
+
+  const quickAnswer = await QuickAnswer.findOne({ where });
 
   if (!quickAnswer) {
     throw new AppError("ERR_NO_QUICK_ANSWER_FOUND", 404);

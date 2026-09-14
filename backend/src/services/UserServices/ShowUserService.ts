@@ -3,15 +3,26 @@ import AppError from "../../errors/AppError";
 import Queue from "../../models/Queue";
 import Whatsapp from "../../models/Whatsapp";
 
-const ShowUserService = async (id: string | number): Promise<User> => {
-  const user = await User.findByPk(id, {
+const ShowUserService = async (
+  id: string | number,
+  companyId?: number
+): Promise<User> => {
+  const where: any = { id };
+  if (companyId) {
+    where.companyId = companyId;
+  }
+
+  const user = await User.findOne({
+    where,
     attributes: [
       "name",
       "id",
       "email",
       "profile",
       "tokenVersion",
-      "whatsappId"
+      "whatsappId",
+      "companyId",
+      "isSuperAdmin"
     ],
     include: [
       { model: Queue, as: "queues", attributes: ["id", "name", "color"] },
@@ -19,6 +30,7 @@ const ShowUserService = async (id: string | number): Promise<User> => {
     ],
     order: [[{ model: Queue, as: "queues" }, "name", "asc"]]
   });
+
   if (!user) {
     throw new AppError("ERR_NO_USER_FOUND", 404);
   }

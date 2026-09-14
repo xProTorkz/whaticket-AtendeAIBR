@@ -14,14 +14,28 @@ interface MessageData {
   mediaUrl?: string;
   ack?: number;
   quotedMsgId?: string;
+  companyId?: number;
 }
 interface Request {
   messageData: MessageData;
+  companyId?: number;
 }
 
 const CreateMessageService = async ({
-  messageData
+  messageData,
+  companyId
 }: Request): Promise<Message> => {
+  if (companyId && !messageData.companyId) {
+    messageData.companyId = companyId;
+  }
+
+  if (!messageData.companyId && messageData.ticketId) {
+    const ticket = await Ticket.findByPk(messageData.ticketId);
+    if (ticket) {
+      messageData.companyId = ticket.companyId;
+    }
+  }
+
   await Message.upsert(messageData);
 
   const message = await Message.findByPk(messageData.id, {
@@ -53,9 +67,12 @@ const CreateMessageService = async ({
   }
 
   const io = getIO();
+  const targetCompanyId = message.companyId || message.ticket?.companyId;
+
   io.to(message.ticketId.toString())
     .to(message.ticket.status)
     .to("notification")
+    .to(`company-${targetCompanyId}-notification`)
     .emit("appMessage", {
       action: "create",
       message,

@@ -1,5 +1,6 @@
 import { Router } from "express";
 
+import healthRoutes from "./healthRoutes";
 import userRoutes from "./userRoutes";
 import authRoutes from "./authRoutes";
 import settingRoutes from "./settingRoutes";
@@ -13,6 +14,9 @@ import quickAnswerRoutes from "./quickAnswerRoutes";
 import apiRoutes from "./apiRoutes";
 
 const routes = Router();
+
+// Public health and readiness probes
+routes.use(healthRoutes);
 
 routes.use(userRoutes);
 routes.use("/auth", authRoutes);

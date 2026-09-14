@@ -20,6 +20,7 @@ import Ticket from "./Ticket";
 import Queue from "./Queue";
 import UserQueue from "./UserQueue";
 import Whatsapp from "./Whatsapp";
+import Company from "./Company";
 
 @Table
 class User extends Model<User> {
@@ -47,6 +48,18 @@ class User extends Model<User> {
   @Default("admin")
   @Column
   profile: string;
+
+  @Default(false)
+  @Column
+  isSuperAdmin: boolean;
+
+  @Default(1)
+  @ForeignKey(() => Company)
+  @Column
+  companyId: number;
+
+  @BelongsTo(() => Company)
+  company: Company;
 
   @ForeignKey(() => Whatsapp)
   @Column

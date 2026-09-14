@@ -9,6 +9,7 @@ import UpdateTicketService from "../services/TicketServices/UpdateTicketService"
 import SendWhatsAppMessage from "../services/WbotServices/SendWhatsAppMessage";
 import ShowWhatsAppService from "../services/WhatsappService/ShowWhatsAppService";
 import formatBody from "../helpers/Mustache";
+import CreateAuditLogService from "../services/AuditServices/CreateAuditLogService";
 
 type IndexQuery = {
   searchParam: string;
@@ -39,6 +40,7 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
   } = req.query as IndexQuery;
 
   const userId = req.user.id;
+  const companyId = req.user?.companyId || 1;
 
   let queueIds: number[] = [];
 
@@ -54,7 +56,8 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
     showAll,
     userId,
     queueIds,
-    withUnreadMessages
+    withUnreadMessages,
+    companyId
   });
 
   return res.status(200).json({ tickets, count, hasMore });
@@ -62,11 +65,21 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
 
 export const store = async (req: Request, res: Response): Promise<Response> => {
   const { contactId, status, userId }: TicketData = req.body;
+  const companyId = req.user?.companyId || 1;
 
-  const ticket = await CreateTicketService({ contactId, status, userId });
+  const ticket = await CreateTicketService({
+    contactId,
+    status,
+    userId,
+    companyId
+  });
 
   const io = getIO();
   io.to(ticket.status).emit("ticket", {
+    action: "update",
+    ticket
+  });
+  io.to(`company-${companyId}-${ticket.status}`).emit("ticket", {
     action: "update",
     ticket
   });
@@ -76,8 +89,9 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
 
 export const show = async (req: Request, res: Response): Promise<Response> => {
   const { ticketId } = req.params;
+  const companyId = req.user?.isSuperAdmin ? undefined : req.user?.companyId;
 
-  const contact = await ShowTicketService(ticketId);
+  const contact = await ShowTicketService(ticketId, companyId);
 
   return res.status(200).json(contact);
 };
@@ -88,14 +102,16 @@ export const update = async (
 ): Promise<Response> => {
   const { ticketId } = req.params;
   const ticketData: TicketData = req.body;
+  const companyId = req.user?.isSuperAdmin ? undefined : req.user?.companyId;
 
   const { ticket } = await UpdateTicketService({
     ticketData,
-    ticketId
+    ticketId,
+    companyId
   });
 
   if (ticket.status === "closed") {
-    const whatsapp = await ShowWhatsAppService(ticket.whatsappId);
+    const whatsapp = await ShowWhatsAppService(ticket.whatsappId, ticket.companyId);
 
     const { farewellMessage } = whatsapp;
 
@@ -115,14 +131,31 @@ export const remove = async (
   res: Response
 ): Promise<Response> => {
   const { ticketId } = req.params;
+  const companyId = req.user?.isSuperAdmin ? undefined : req.user?.companyId;
 
-  const ticket = await DeleteTicketService(ticketId);
+  const ticket = await DeleteTicketService(ticketId, companyId);
+
+  CreateAuditLogService({
+    companyId: req.user.companyId,
+    userId: Number(req.user.id),
+    action: "TICKET_DELETE",
+    entity: "Ticket",
+    entityId: ticketId
+  });
 
   const io = getIO();
   io.to(ticket.status).to(ticketId).to("notification").emit("ticket", {
     action: "delete",
     ticketId: +ticketId
   });
+
+  io.to(`company-${req.user.companyId}-${ticket.status}`)
+    .to(ticketId)
+    .to(`company-${req.user.companyId}-notification`)
+    .emit("ticket", {
+      action: "delete",
+      ticketId: +ticketId
+    });
 
   return res.status(200).json({ message: "ticket deleted" });
 };

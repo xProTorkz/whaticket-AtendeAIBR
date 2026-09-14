@@ -8,6 +8,8 @@ interface TokenPayload {
   id: string;
   username: string;
   profile: string;
+  companyId?: number;
+  isSuperAdmin?: boolean;
   iat: number;
   exp: number;
 }
@@ -23,11 +25,13 @@ const isAuth = (req: Request, res: Response, next: NextFunction): void => {
 
   try {
     const decoded = verify(token, authConfig.secret);
-    const { id, profile } = decoded as TokenPayload;
+    const { id, profile, companyId, isSuperAdmin } = decoded as TokenPayload;
 
     req.user = {
       id,
-      profile
+      profile,
+      companyId: Number(companyId || 1),
+      isSuperAdmin: Boolean(isSuperAdmin)
     };
   } catch (err) {
     throw new AppError(

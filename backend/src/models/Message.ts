@@ -12,6 +12,7 @@ import {
 } from "sequelize-typescript";
 import Contact from "./Contact";
 import Ticket from "./Ticket";
+import Company from "./Company";
 
 @Table
 class Message extends Model<Message> {
@@ -50,6 +51,14 @@ class Message extends Model<Message> {
   @Default(false)
   @Column
   isDeleted: boolean;
+
+  @Default(1)
+  @ForeignKey(() => Company)
+  @Column
+  companyId: number;
+
+  @BelongsTo(() => Company)
+  company: Company;
 
   @CreatedAt
   @Column(DataType.DATE(6))

@@ -1,4 +1,5 @@
 import { Sequelize } from "sequelize-typescript";
+import Company from "../models/Company";
 import User from "../models/User";
 import Setting from "../models/Setting";
 import Contact from "../models/Contact";
@@ -11,14 +12,15 @@ import WhatsappQueue from "../models/WhatsappQueue";
 import UserQueue from "../models/UserQueue";
 import QuickAnswer from "../models/QuickAnswer";
 import WppKey from "../models/WppKey";
+import AuditLog from "../models/AuditLog";
 
 // eslint-disable-next-line
 const dbConfig = require("../config/database");
-// import dbConfig from "../config/database";
 
 const sequelize = new Sequelize(dbConfig);
 
 const models = [
+  Company,
   User,
   Contact,
   Ticket,
@@ -30,7 +32,8 @@ const models = [
   WhatsappQueue,
   UserQueue,
   QuickAnswer,
-  WppKey
+  WppKey,
+  AuditLog
 ];
 
 sequelize.addModels(models);

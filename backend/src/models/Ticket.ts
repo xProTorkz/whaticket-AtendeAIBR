@@ -17,6 +17,7 @@ import Message from "./Message";
 import Queue from "./Queue";
 import User from "./User";
 import Whatsapp from "./Whatsapp";
+import Company from "./Company";
 
 @Table
 class Ticket extends Model<Ticket> {
@@ -37,6 +38,14 @@ class Ticket extends Model<Ticket> {
   @Default(false)
   @Column
   isGroup: boolean;
+
+  @Default(1)
+  @ForeignKey(() => Company)
+  @Column
+  companyId: number;
+
+  @BelongsTo(() => Company)
+  company: Company;
 
   @CreatedAt
   createdAt: Date;

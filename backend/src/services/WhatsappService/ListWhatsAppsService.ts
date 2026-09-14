@@ -1,8 +1,11 @@
 import Queue from "../../models/Queue";
 import Whatsapp from "../../models/Whatsapp";
 
-const ListWhatsAppsService = async (): Promise<Whatsapp[]> => {
+const ListWhatsAppsService = async (
+  companyId: number = 1
+): Promise<Whatsapp[]> => {
   const whatsapps = await Whatsapp.findAll({
+    where: { companyId },
     include: [
       {
         model: Queue,

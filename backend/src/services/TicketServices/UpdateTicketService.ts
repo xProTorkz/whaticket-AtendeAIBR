@@ -2,8 +2,6 @@ import CheckContactOpenTickets from "../../helpers/CheckContactOpenTickets";
 import SetTicketMessagesAsRead from "../../helpers/SetTicketMessagesAsRead";
 import { getIO } from "../../libs/socket";
 import Ticket from "../../models/Ticket";
-import SendWhatsAppMessage from "../WbotServices/SendWhatsAppMessage";
-import ShowWhatsAppService from "../WhatsappService/ShowWhatsAppService";
 import ShowTicketService from "./ShowTicketService";
 
 interface TicketData {
@@ -16,6 +14,7 @@ interface TicketData {
 interface Request {
   ticketData: TicketData;
   ticketId: string | number;
+  companyId?: number;
 }
 
 interface Response {
@@ -26,11 +25,12 @@ interface Response {
 
 const UpdateTicketService = async ({
   ticketData,
-  ticketId
+  ticketId,
+  companyId
 }: Request): Promise<Response> => {
   const { status, userId, queueId, whatsappId } = ticketData;
 
-  const ticket = await ShowTicketService(ticketId);
+  const ticket = await ShowTicketService(ticketId, companyId);
   await SetTicketMessagesAsRead(ticket);
 
   if (whatsappId && ticket.whatsappId !== whatsappId) {
@@ -65,10 +65,22 @@ const UpdateTicketService = async ({
       action: "delete",
       ticketId: ticket.id
     });
+    io.to(`company-${ticket.companyId}-${oldStatus}`).emit("ticket", {
+      action: "delete",
+      ticketId: ticket.id
+    });
   }
 
   io.to(ticket.status)
     .to("notification")
+    .to(ticketId.toString())
+    .emit("ticket", {
+      action: "update",
+      ticket
+    });
+
+  io.to(`company-${ticket.companyId}-${ticket.status}`)
+    .to(`company-${ticket.companyId}-notification`)
     .to(ticketId.toString())
     .emit("ticket", {
       action: "update",

@@ -110,7 +110,8 @@ const saveMediaFile = async (mediaPayload: MediaPayload): Promise<string> => {
 };
 
 const processVcardMessage = async (
-  messagePayload: MessagePayload
+  messagePayload: MessagePayload,
+  companyId?: number
 ): Promise<void> => {
   if (messagePayload.type !== "vcard") return;
 
@@ -135,7 +136,8 @@ const processVcardMessage = async (
       phoneNumbers.map(({ number }) =>
         CreateContactService({
           name: contactName,
-          number: number.replace(/\D/g, "")
+          number: number.replace(/\D/g, ""),
+          companyId
         })
       )
     );
@@ -223,12 +225,16 @@ export const handleMessage = async (
   try {
     const processedMessage = processLocationMessage(messagePayload);
 
+    const whatsapp = await ShowWhatsAppService(contextPayload.whatsappId);
+    const companyId = whatsapp.companyId;
+
     const contact = await CreateOrUpdateContactService({
       name: contactPayload.name,
       number: contactPayload.number,
       lid: contactPayload.lid,
       profilePicUrl: contactPayload.profilePicUrl,
-      isGroup: contactPayload.isGroup
+      isGroup: contactPayload.isGroup,
+      companyId
     });
 
     let groupContact: Contact | undefined;
@@ -238,11 +244,11 @@ export const handleMessage = async (
         number: contextPayload.groupContact.number,
         lid: contextPayload.groupContact.lid,
         profilePicUrl: contextPayload.groupContact.profilePicUrl,
-        isGroup: contextPayload.groupContact.isGroup
+        isGroup: contextPayload.groupContact.isGroup,
+        companyId
       });
     }
 
-    const whatsapp = await ShowWhatsAppService(contextPayload.whatsappId);
     if (
       contextPayload.unreadMessages === 0 &&
       whatsapp.farewellMessage &&
@@ -255,7 +261,8 @@ export const handleMessage = async (
       contact,
       contextPayload.whatsappId,
       contextPayload.unreadMessages,
-      groupContact
+      groupContact,
+      companyId
     );
 
     const messageData: any = {
@@ -267,7 +274,8 @@ export const handleMessage = async (
       read: processedMessage.fromMe,
       mediaType: processedMessage.type,
       quotedMsgId: processedMessage.quotedMsgId,
-      ack: processedMessage.ack !== undefined ? processedMessage.ack : 0
+      ack: processedMessage.ack !== undefined ? processedMessage.ack : 0,
+      companyId
     };
 
     if (mediaPayload && processedMessage.hasMedia) {
@@ -289,9 +297,9 @@ export const handleMessage = async (
 
     await ticket.update({ lastMessage: lastMessageText });
 
-    await CreateMessageService({ messageData });
+    await CreateMessageService({ messageData, companyId });
 
-    await processVcardMessage(processedMessage);
+    await processVcardMessage(processedMessage, companyId);
 
     if (
       !ticket.queue &&
@@ -346,10 +354,14 @@ export const handleMessageAck = async (
 
     await messageToUpdate.update({ ack });
 
-    io.to(messageToUpdate.ticketId.toString()).emit("appMessage", {
-      action: "update",
-      message: messageToUpdate
-    });
+    const targetCompanyId = messageToUpdate.companyId;
+
+    io.to(messageToUpdate.ticketId.toString())
+      .to(`company-${targetCompanyId}-notification`)
+      .emit("appMessage", {
+        action: "update",
+        message: messageToUpdate
+      });
   } catch (err) {
     Sentry.captureException(err);
     logger.error(`Error handling message ack: ${err}`);

@@ -7,6 +7,7 @@ import CreateQuickAnswerService from "../services/QuickAnswerService/CreateQuick
 import ShowQuickAnswerService from "../services/QuickAnswerService/ShowQuickAnswerService";
 import UpdateQuickAnswerService from "../services/QuickAnswerService/UpdateQuickAnswerService";
 import DeleteQuickAnswerService from "../services/QuickAnswerService/DeleteQuickAnswerService";
+import CreateAuditLogService from "../services/AuditServices/CreateAuditLogService";
 
 import AppError from "../errors/AppError";
 
@@ -22,10 +23,12 @@ interface QuickAnswerData {
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
   const { searchParam, pageNumber } = req.query as IndexQuery;
+  const companyId = req.user?.companyId || 1;
 
   const { quickAnswers, count, hasMore } = await ListQuickAnswerService({
     searchParam,
-    pageNumber
+    pageNumber,
+    companyId
   });
 
   return res.json({ quickAnswers, count, hasMore });
@@ -33,6 +36,7 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
 
 export const store = async (req: Request, res: Response): Promise<Response> => {
   const newQuickAnswer: QuickAnswerData = req.body;
+  const companyId = req.user?.companyId || 1;
 
   const QuickAnswerSchema = Yup.object().shape({
     shortcut: Yup.string().required(),
@@ -41,15 +45,29 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
 
   try {
     await QuickAnswerSchema.validate(newQuickAnswer);
-  } catch (err) {
+  } catch (err: any) {
     throw new AppError(err.message);
   }
 
   const quickAnswer = await CreateQuickAnswerService({
-    ...newQuickAnswer
+    ...newQuickAnswer,
+    companyId
+  });
+
+  CreateAuditLogService({
+    companyId,
+    userId: Number(req.user.id),
+    action: "QUICK_ANSWER_CREATE",
+    entity: "QuickAnswer",
+    entityId: quickAnswer.id,
+    details: { shortcut: quickAnswer.shortcut }
   });
 
   const io = getIO();
+  io.emit(`company-${companyId}-quickAnswer`, {
+    action: "create",
+    quickAnswer
+  });
   io.emit("quickAnswer", {
     action: "create",
     quickAnswer
@@ -60,8 +78,9 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
 
 export const show = async (req: Request, res: Response): Promise<Response> => {
   const { quickAnswerId } = req.params;
+  const companyId = req.user?.isSuperAdmin ? undefined : req.user?.companyId;
 
-  const quickAnswer = await ShowQuickAnswerService(quickAnswerId);
+  const quickAnswer = await ShowQuickAnswerService(quickAnswerId, companyId);
 
   return res.status(200).json(quickAnswer);
 };
@@ -71,6 +90,7 @@ export const update = async (
   res: Response
 ): Promise<Response> => {
   const quickAnswerData: QuickAnswerData = req.body;
+  const companyId = req.user?.isSuperAdmin ? undefined : req.user?.companyId;
 
   const schema = Yup.object().shape({
     shortcut: Yup.string(),
@@ -79,7 +99,7 @@ export const update = async (
 
   try {
     await schema.validate(quickAnswerData);
-  } catch (err) {
+  } catch (err: any) {
     throw new AppError(err.message);
   }
 
@@ -87,10 +107,24 @@ export const update = async (
 
   const quickAnswer = await UpdateQuickAnswerService({
     quickAnswerData,
-    quickAnswerId
+    quickAnswerId,
+    companyId
+  });
+
+  CreateAuditLogService({
+    companyId: req.user.companyId,
+    userId: Number(req.user.id),
+    action: "QUICK_ANSWER_UPDATE",
+    entity: "QuickAnswer",
+    entityId: quickAnswerId,
+    details: quickAnswerData
   });
 
   const io = getIO();
+  io.emit(`company-${req.user.companyId}-quickAnswer`, {
+    action: "update",
+    quickAnswer
+  });
   io.emit("quickAnswer", {
     action: "update",
     quickAnswer
@@ -104,10 +138,23 @@ export const remove = async (
   res: Response
 ): Promise<Response> => {
   const { quickAnswerId } = req.params;
+  const companyId = req.user?.isSuperAdmin ? undefined : req.user?.companyId;
 
-  await DeleteQuickAnswerService(quickAnswerId);
+  await DeleteQuickAnswerService(quickAnswerId, companyId);
+
+  CreateAuditLogService({
+    companyId: req.user.companyId,
+    userId: Number(req.user.id),
+    action: "QUICK_ANSWER_DELETE",
+    entity: "QuickAnswer",
+    entityId: quickAnswerId
+  });
 
   const io = getIO();
+  io.emit(`company-${req.user.companyId}-quickAnswer`, {
+    action: "delete",
+    quickAnswerId
+  });
   io.emit("quickAnswer", {
     action: "delete",
     quickAnswerId

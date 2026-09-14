@@ -16,11 +16,13 @@ interface Request {
   email?: string;
   profilePicUrl?: string;
   extraInfo?: ExtraInfo[];
+  companyId?: number;
 }
 
-const emitContact = (action: "update" | "create", contact: Contact) => {
+const emitContact = (action: "update" | "create", contact: Contact, companyId: number = 1) => {
   const io = getIO();
 
+  io.emit(`company-${companyId}-contact`, { action, contact });
   io.emit("contact", { action, contact });
 };
 
@@ -31,14 +33,15 @@ const CreateOrUpdateContactService = async ({
   profilePicUrl,
   isGroup,
   email = "",
-  extraInfo = []
+  extraInfo = [],
+  companyId = 1
 }: Request): Promise<Contact> => {
   const number = isGroup ? rawNumber : rawNumber.replace(/[^0-9]/g, "");
   if (!number && !lid) throw new Error("Either number or lid must be provided");
 
   const [contactByNumber, contactByLid] = await Promise.all([
-    number ? Contact.findOne({ where: { number } }) : null,
-    lid ? Contact.findOne({ where: { lid } }) : null
+    number ? Contact.findOne({ where: { number, companyId } }) : null,
+    lid ? Contact.findOne({ where: { lid, companyId } }) : null
   ]);
 
   const shouldMerge =
@@ -47,7 +50,7 @@ const CreateOrUpdateContactService = async ({
   if (shouldMerge) {
     await Ticket.update(
       { contactId: contactByNumber.id },
-      { where: { contactId: contactByLid.id } }
+      { where: { contactId: contactByLid.id, companyId } }
     );
 
     await contactByLid.destroy();
@@ -60,10 +63,11 @@ const CreateOrUpdateContactService = async ({
     logger.info({
       info: "Merged contacts by number and lid",
       primaryContactId: contactByNumber.id,
-      mergedContactId: contactByLid.id
+      mergedContactId: contactByLid.id,
+      companyId
     });
 
-    emitContact("update", contactByNumber);
+    emitContact("update", contactByNumber, companyId);
 
     return contactByNumber;
   }
@@ -74,7 +78,7 @@ const CreateOrUpdateContactService = async ({
       profilePicUrl
     });
 
-    emitContact("update", contactByNumber);
+    emitContact("update", contactByNumber, companyId);
 
     return contactByNumber;
   }
@@ -85,7 +89,7 @@ const CreateOrUpdateContactService = async ({
       profilePicUrl
     });
 
-    emitContact("update", contactByLid);
+    emitContact("update", contactByLid, companyId);
     return contactByLid;
   }
 
@@ -96,10 +100,11 @@ const CreateOrUpdateContactService = async ({
     profilePicUrl,
     email,
     isGroup,
-    extraInfo
+    extraInfo,
+    companyId
   });
 
-  emitContact("create", created);
+  emitContact("create", created, companyId);
   return created;
 };
 

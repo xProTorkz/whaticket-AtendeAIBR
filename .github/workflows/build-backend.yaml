@@ -2,12 +2,14 @@ name: Test build backend
 
 on:
   pull_request:
+    branches:
+      - main
     paths:
       - "backend/**"
 
   push:
     branches:
-      - master
+      - main
     paths:
       - "backend/**"
 
@@ -17,7 +19,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [14.x]
+        node-version: [18.x, 20.x]
 
     steps:
       - name: Checkout repository
@@ -32,5 +34,6 @@ jobs:
         working-directory: backend
         run: npm install
 
-      - run: npm run build
+      - name: Build backend
         working-directory: backend
+        run: npm run build

@@ -7,6 +7,8 @@ interface SerializedUser {
   name: string;
   email: string;
   profile: string;
+  companyId: number;
+  isSuperAdmin?: boolean;
   queues: Queue[];
   whatsapp: Whatsapp;
 }
@@ -17,6 +19,8 @@ export const SerializeUser = (user: User): SerializedUser => {
     name: user.name,
     email: user.email,
     profile: user.profile,
+    companyId: user.companyId || 1,
+    isSuperAdmin: Boolean(user.isSuperAdmin),
     queues: user.queues,
     whatsapp: user.whatsapp
   };

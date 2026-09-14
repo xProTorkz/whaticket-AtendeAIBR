@@ -31,7 +31,8 @@ interface ContactData {
 
 const createContact = async (
   whatsappId: number | undefined,
-  newContact: string
+  newContact: string,
+  companyId?: number
 ) => {
   await CheckIsValidContact(newContact);
 
@@ -45,7 +46,8 @@ const createContact = async (
     name: `${number}`,
     number,
     profilePicUrl,
-    isGroup: false
+    isGroup: false,
+    companyId
   };
 
   const contact = await CreateOrUpdateContactService(contactData);
@@ -53,18 +55,28 @@ const createContact = async (
   let whatsapp: Whatsapp | null;
 
   if (whatsappId === undefined) {
-    whatsapp = await GetDefaultWhatsApp();
+    whatsapp = await GetDefaultWhatsApp(companyId);
   } else {
-    whatsapp = await Whatsapp.findByPk(whatsappId);
+    const whereWhatsapp: any = { id: whatsappId };
+    if (companyId) {
+      whereWhatsapp.companyId = companyId;
+    }
+    whatsapp = await Whatsapp.findOne({ where: whereWhatsapp });
 
     if (whatsapp === null) {
       throw new AppError(`whatsapp #${whatsappId} not found`);
     }
   }
 
-  const createTicket = await FindOrCreateTicketService(contact, whatsapp.id, 1);
+  const createTicket = await FindOrCreateTicketService(
+    contact,
+    whatsapp.id,
+    1,
+    undefined,
+    companyId
+  );
 
-  const ticket = await ShowTicketService(createTicket.id);
+  const ticket = await ShowTicketService(createTicket.id, companyId);
 
   SetTicketMessagesAsRead(ticket);
 
@@ -76,6 +88,7 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
   const { whatsappId }: WhatsappData = req.body;
   const { body, quotedMsg }: MessageData = req.body;
   const medias = req.files as Express.Multer.File[];
+  const companyId = req.user?.companyId;
 
   newContact.number = newContact.number.replace("-", "").replace(" ", "");
 
@@ -91,7 +104,11 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
     throw new AppError(err.message);
   }
 
-  const contactAndTicket = await createContact(whatsappId, newContact.number);
+  const contactAndTicket = await createContact(
+    whatsappId,
+    newContact.number,
+    companyId
+  );
 
   if (medias) {
     await Promise.all(
