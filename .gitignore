@@ -1,0 +1,78 @@
+# ===========================================
+# Whaticket AtendeAI BR — Root .gitignore
+# ===========================================
+
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+.next/
+.cache/
+
+# Environment variables (NEVER commit secrets)
+.env
+.env.*
+!.env.example
+
+# Docker data
+.docker/data/
+
+# SSL certificates
+ssl/
+
+# WhatsApp session data
+.wwebjs_auth/
+.wwebjs_cache/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Coverage
+coverage/
+coverage.data
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# Database dumps and backups
+*.sql
+*.dump
+*.bak
+*.sqlite
+*.sqlite3
+
+# Session files
+*.session
+*.cookies
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Package lock files (per project convention — each sub-project manages its own)
+# Uncomment if you want to exclude them:
+# package-lock.json
+# yarn.lock
+
+# Public uploads (backend)
+backend/public/*
+!backend/public/.gitkeep
