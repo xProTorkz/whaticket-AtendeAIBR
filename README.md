@@ -2,7 +2,7 @@
 
 > Plataforma SaaS de atendimento, CRM e automação comercial com foco em WhatsApp, construída sobre uma base Whaticket profundamente evoluída para operação multiempresa.
 
-O **AtendeAI BR** centraliza atendimento, contatos, CRM, filas, campanhas e métricas em um único painel web. O produto é **WhatsApp-first**: hoje o canal real operacional é o WhatsApp, enquanto a arquitetura de adapters já está preparada para receber outros canais de forma desacoplada.
+O **AtendeAI BR** centraliza atendimento, contatos, CRM, filas, campanhas, métricas e integrações em um único painel web. O produto é **WhatsApp-first**: hoje o canal externo real operacional é o WhatsApp, enquanto a arquitetura de adapters já está preparada para receber outros canais de forma desacoplada.
 
 ## O problema que o produto resolve
 
@@ -13,7 +13,7 @@ Empresas que atendem clientes por WhatsApp normalmente enfrentam quatro gargalos
 - ausência de controle sobre carteira, histórico e produtividade da equipe;
 - operação comercial fragmentada entre WhatsApp, planilhas, anotações e ferramentas isoladas.
 
-O AtendeAI BR transforma esse fluxo em uma operação centralizada, auditável e mensurável.
+O AtendeAI BR transforma esse fluxo em uma operação centralizada, auditável, mensurável e integrável.
 
 ## O que já funciona de verdade
 
@@ -38,7 +38,12 @@ O AtendeAI BR transforma esse fluxo em uma operação centralizada, auditável e
 | Listas de contatos | ✅ Funcional |
 | Campanhas | ✅ BullMQ + Redis + progresso persistente |
 | Opt-out de marketing | ✅ Funcional |
-| API pública / webhooks / n8n | 🚧 Issue #17 |
+| API pública `/api/v1` | ✅ Funcional, versionada e autenticada |
+| API Keys por tenant e scopes | ✅ Funcional |
+| Webhooks assinados HMAC-SHA256 | ✅ Funcional + retry/DLQ |
+| Integração n8n | ✅ Documentada via API + webhooks |
+| ManyChat | ✅ Adapter preparado sobre API oficial documentada |
+| SharkBot | 🟡 Contrato/adaptador preparado; ativação depende de documentação oficial suficiente |
 | Agentes de IA nativos | 🗓️ Roadmap |
 | Instagram / Telegram reais | 🗓️ Roadmap |
 | WhatsApp Cloud API oficial | 🗓️ Roadmap |
@@ -88,6 +93,40 @@ O AtendeAI BR transforma esse fluxo em uma operação centralizada, auditável e
 - janela de envio e cadência;
 - opt-out para comunicação de marketing.
 
+### API pública e integrações
+- namespace público versionado em `/api/v1`;
+- autenticação por chave específica do tenant;
+- credenciais armazenadas por hash;
+- scopes granulares por recurso/ação;
+- expiração, revogação e rotação de chaves;
+- `Idempotency-Key` para ações sensíveis;
+- rate limit por credencial/tenant;
+- webhooks de domínio assíncronos via BullMQ;
+- assinatura HMAC-SHA256;
+- retry com backoff e dead-letter;
+- histórico de entregas;
+- documentação de integração com n8n;
+- adapters desacoplados para conectores externos.
+
+### Convenções públicas de integração
+
+As chaves geradas atualmente utilizam prefixo:
+
+```text
+atd_live_...
+```
+
+Os webhooks de saída usam os headers:
+
+```text
+X-Webhook-Signature
+X-Webhook-Timestamp
+X-Webhook-Event
+X-Webhook-Id
+```
+
+A assinatura é HMAC-SHA256 calculada sobre `timestamp.payload`, com janela de proteção contra replay conforme documentação da integração.
+
 ## Segurança e arquitetura SaaS
 
 A plataforma foi estruturada para operação multiempresa desde o backend:
@@ -101,6 +140,8 @@ A plataforma foi estruturada para operação multiempresa desde o backend:
 - healthcheck e readiness;
 - Socket.IO segregado por empresa;
 - workers assíncronos para tarefas pesadas;
+- API pública não expõe automaticamente as rotas internas;
+- tenant de API derivado da credencial, nunca de `companyId` arbitrário enviado pelo cliente;
 - nenhuma credencial deve ser versionada no Git.
 
 ## Stack principal
@@ -132,7 +173,7 @@ A plataforma foi estruturada para operação multiempresa desde o backend:
 Frontend React
      │
      ▼
-REST + Socket.IO
+REST interno + Socket.IO
      │
      ├── Auth / RBAC / Multi-tenant
      ├── Atendimento / Tickets / Mensagens
@@ -140,11 +181,15 @@ REST + Socket.IO
      ├── SLA / Lifecycle / Dashboard
      ├── Campanhas / Agendamentos
      │        └── BullMQ + Redis Workers
+     ├── Integrações
+     │        ├── API Pública /api/v1
+     │        ├── API Keys + Scopes
+     │        ├── Webhooks HMAC
+     │        ├── n8n
+     │        └── Adapters externos
      └── ChannelManager
               └── WhatsApp Adapter
 ```
-
-A próxima camada pública de integrações está sendo criada na **Issue #17**, com API versionada, webhooks assinados, scopes por tenant e suporte oficial a automações externas.
 
 ## Perfis de usuário
 
@@ -185,7 +230,7 @@ Perguntas de descoberta úteis:
 
 ## Estrutura comercial sugerida
 
-Os valores abaixo são uma **proposta comercial**, não significam que limites e cobrança já estejam tecnicamente automatizados. Entitlements e billing server-side fazem parte do roadmap SaaS.
+Os valores abaixo são uma **proposta comercial**, não significam que limites e cobrança já estejam tecnicamente automatizados. Entitlements e billing server-side fazem parte da próxima fase SaaS.
 
 | Oferta | Posicionamento | Mensalidade de referência | Implantação |
 | --- | --- | ---: | ---: |
@@ -194,7 +239,7 @@ Os valores abaixo são uma **proposta comercial**, não significam que limites e
 | **Scale** | operação maior, campanhas, integrações e acompanhamento | R$ 597–997 | R$ 1.500–3.000 |
 
 ### Start
-- 1 operação/conexão WhatsApp;
+- 1 operação/conexão WhatsApp como referência comercial;
 - até 3 usuários como referência comercial;
 - atendimento, contatos, filas básicas e respostas rápidas;
 - onboarding self-service.
@@ -210,7 +255,7 @@ Os valores abaixo são uma **proposta comercial**, não significam que limites e
 ### Scale
 - operação dimensionada conforme demanda;
 - campanhas, agendamentos e listas;
-- integrações externas após conclusão da Issue #17;
+- API pública, webhooks e integrações externas;
 - onboarding consultivo;
 - acompanhamento operacional.
 
@@ -248,26 +293,28 @@ Nunca versione `.env`, tokens, sessões do WhatsApp, cookies ou credenciais.
 Documentos canônicos do projeto:
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — arquitetura e decisões estruturais;
-- [`docs/PROJECT_STATE.md`](docs/PROJECT_STATE.md) — estado funcional, auditorias e pendências.
+- [`docs/PROJECT_STATE.md`](docs/PROJECT_STATE.md) — estado funcional, auditorias e pendências;
+- [`docs/integrations/n8n.md`](docs/integrations/n8n.md) — integração n8n/API/webhooks.
 
 A execução é rastreada por Issues e commits no GitHub. O repositório é a fonte de verdade.
 
 ## Roadmap imediato
 
-1. **#17 — API pública, webhooks, n8n e conectores externos**
-2. **SaaS comercial — white-label, planos, limites e onboarding**
-3. **Hardening de produção — segurança, backup, observabilidade, deploy e recuperação**
-4. **Agentes de IA nativos — RAG, tools/actions e handoff humano**
-5. **WhatsApp Cloud API oficial — adapter alternativo para operações de maior escala**
-6. **Canais futuros — Instagram e Telegram via adapters independentes**
+1. **#18 — SaaS comercial: planos, onboarding, branding e billing-ready**
+2. **#19 — Hardening de produção: segurança, backup, observabilidade, deploy e recuperação**
+3. **#20 — Agentes de IA nativos: RAG, tools/actions e handoff humano**
+4. **#21 — WhatsApp Cloud API oficial como adapter alternativo para operações de maior escala**
+5. **Canais futuros — Instagram e Telegram via adapters independentes**
+
+O plano de lançamento comercial está rastreado na **Issue #22** e pode ser preparado em paralelo. Aquisição paga em escala deve esperar a conclusão do hardening de produção.
 
 ## Estratégia de lançamento
 
 O primeiro lançamento deve focar no que já está validado:
 
-**WhatsApp + multiatendimento + filas + CRM + SLA + campanhas/agendamentos.**
+**WhatsApp + multiatendimento + filas + CRM + SLA + campanhas/agendamentos + integrações.**
 
-Evitar vender IA, omnichannel completo ou billing automatizado antes dessas etapas existirem no produto.
+Evitar vender IA, omnichannel completo, Cloud API oficial ou billing automatizado antes dessas etapas existirem no produto.
 
 A abordagem recomendada é iniciar por **um nicho e uma região por vez**, com demonstração real do painel, onboarding próximo e coleta rápida de prova social. Depois de validar conversão, suporte e retenção, expandir para outros segmentos.
 
@@ -281,4 +328,4 @@ A abordagem recomendada é iniciar por **um nicho e uma região por vez**, com d
 
 ---
 
-**AtendeAI BR** — atendimento, CRM e automação comercial centrados no WhatsApp, com arquitetura preparada para crescer sem perder controle do tenant, do histórico e da operação.
+**AtendeAI BR** — atendimento, CRM, automação comercial e integrações centrados no WhatsApp, com arquitetura preparada para crescer sem perder controle do tenant, do histórico e da operação.
