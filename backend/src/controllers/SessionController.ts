@@ -4,6 +4,7 @@ import AppError from "../errors/AppError";
 import AuthUserService from "../services/UserServices/AuthUserService";
 import { SendRefreshToken } from "../helpers/SendRefreshToken";
 import { RefreshTokenService } from "../services/AuthServices/RefreshTokenService";
+import { SerializeUser } from "../helpers/SerializeUser";
 
 export const store = async (req: Request, res: Response): Promise<Response> => {
   const { email, password } = req.body;
@@ -38,7 +39,7 @@ export const update = async (
 
   SendRefreshToken(res, refreshToken);
 
-  return res.json({ token: newToken, user });
+  return res.json({ token: newToken, user: SerializeUser(user) });
 };
 
 export const remove = async (
@@ -48,4 +49,15 @@ export const remove = async (
   res.clearCookie("jrt");
 
   return res.send();
+};
+
+export const me = async (req: Request, res: Response): Promise<Response> => {
+  const user = req.user;
+  return res.json({
+    id: user.id,
+    profile: user.profile,
+    companyId: user.companyId,
+    isSuperAdmin: user.isSuperAdmin,
+    super: user.isSuperAdmin
+  });
 };

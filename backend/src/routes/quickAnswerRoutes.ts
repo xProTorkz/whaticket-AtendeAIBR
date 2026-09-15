@@ -40,4 +40,36 @@ quickAnswerRoutes.delete(
   QuickAnswerController.remove
 );
 
+// Aliases para compatibilidade com frontend avançado
+quickAnswerRoutes.get(
+  "/quick-messages",
+  isAuth,
+  isAgentOrAbove,
+  QuickAnswerController.index
+);
+quickAnswerRoutes.get(
+  "/quick-messages/:id",
+  isAuth,
+  isAgentOrAbove,
+  QuickAnswerController.show
+);
+quickAnswerRoutes.post(
+  "/quick-messages",
+  isAuth,
+  isManagerOrAdmin,
+  QuickAnswerController.store
+);
+quickAnswerRoutes.put(
+  "/quick-messages/:id",
+  isAuth,
+  isManagerOrAdmin,
+  QuickAnswerController.update
+);
+quickAnswerRoutes.delete(
+  "/quick-messages/:id",
+  isAuth,
+  isManagerOrAdmin,
+  QuickAnswerController.remove
+);
+
 export default quickAnswerRoutes;

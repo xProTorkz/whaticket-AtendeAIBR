@@ -1,47 +1,40 @@
 import React, { useState, useContext } from "react";
 import { Link as RouterLink } from "react-router-dom";
 
-import {
-  Avatar,
-  Button,
-  CssBaseline,
-  TextField,
-  Grid,
-  Box,
-  Typography,
-  Container,
-  InputAdornment,
-  IconButton,
-  Link
-} from '@material-ui/core';
-
-import { LockOutlined, Visibility, VisibilityOff } from '@material-ui/icons';
-
-import { makeStyles } from "@material-ui/core/styles";
+import Button from "@material-ui/core/Button";
+import CssBaseline from "@material-ui/core/CssBaseline";
+import TextField from "@material-ui/core/TextField";
+import Link from "@material-ui/core/Link";
+import Grid from "@material-ui/core/Grid";
+import Box from "@material-ui/core/Box";
+import Typography from "@material-ui/core/Typography";
+import { makeStyles, useTheme } from "@material-ui/core/styles"; // Importe useTheme
+import Container from "@material-ui/core/Container";
 
 import { i18n } from "../../translate/i18n";
 
 import { AuthContext } from "../../context/Auth/AuthContext";
-
-// const Copyright = () => {
-// 	return (
-// 		<Typography variant="body2" color="textSecondary" align="center">
-// 			{"Copyleft "}
-// 			<Link color="inherit" href="https://github.com/canove">
-// 				Canove
-// 			</Link>{" "}
-// 			{new Date().getFullYear()}
-// 			{"."}
-// 		</Typography>
-// 	);
-// };
+import logo from "../../assets/logo.png";
+import logoWhite from "../../assets/logo_branca.png"; // Importe a logo branca
 
 const useStyles = makeStyles((theme) => ({
-  paper: {
-    marginTop: theme.spacing(8),
+  root: {
+    width: "100vw",
+    height: "100vh",
+    backgroundColor: theme.palette.type === 'dark' ? theme.palette.background.default : '#f5f5f5', // Define a cor de fundo com base no tema
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
+    justifyContent: "center",
+    textAlign: "center",
+  },
+  paper: {
+    backgroundColor: theme.palette.login,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    padding: "55px 30px",
+    borderRadius: "12.5px",
   },
   avatar: {
     margin: theme.spacing(1),
@@ -54,13 +47,16 @@ const useStyles = makeStyles((theme) => ({
   submit: {
     margin: theme.spacing(3, 0, 2),
   },
+  powered: {
+    color: "white"
+  }
 }));
 
 const Login = () => {
   const classes = useStyles();
+  const theme = useTheme(); // Adicione useTheme aqui
 
   const [user, setUser] = useState({ email: "", password: "" });
-  const [showPassword, setShowPassword] = useState(false);
 
   const { handleLogin } = useContext(AuthContext);
 
@@ -74,79 +70,69 @@ const Login = () => {
   };
 
   return (
-    <Container component="main" maxWidth="xs">
-      <CssBaseline />
-      <div className={classes.paper}>
-        <Avatar className={classes.avatar}>
-          <LockOutlined />
-        </Avatar>
-        <Typography component="h1" variant="h5">
-          {i18n.t("login.title")}
-        </Typography>
-        <form className={classes.form} noValidate onSubmit={handlSubmit}>
-          <TextField
-            variant="outlined"
-            margin="normal"
-            required
-            fullWidth
-            id="email"
-            label={i18n.t("login.form.email")}
-            name="email"
-            value={user.email}
-            onChange={handleChangeInput}
-            autoComplete="email"
-            autoFocus
-          />
-          <TextField
-            variant="outlined"
-            margin="normal"
-            required
-            fullWidth
-            name="password"
-            label={i18n.t("login.form.password")}
-            id="password"
-            value={user.password}
-            onChange={handleChangeInput}
-            autoComplete="current-password"
-            type={showPassword ? 'text' : 'password'}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton
-                    aria-label="toggle password visibility"
-                    onClick={() => setShowPassword((e) => !e)}
-                  >
-                    {showPassword ? <VisibilityOff /> : <Visibility />}
-                  </IconButton>
-                </InputAdornment>
-              )
-            }}
-          />
-          <Button
-            type="submit"
-            fullWidth
-            variant="contained"
-            color="primary"
-            className={classes.submit}
-          >
-            {i18n.t("login.buttons.submit")}
-          </Button>
-          <Grid container>
-            <Grid item>
-              <Link
-                href="#"
-                variant="body2"
-                component={RouterLink}
-                to="/signup"
-              >
-                {i18n.t("login.buttons.register")}
-              </Link>
-            </Grid>
-          </Grid>
-        </form>
-      </div>
-      <Box mt={8}>{/* <Copyright /> */}</Box>
-    </Container>
+    <div className={classes.root}>
+      <Container component="main" maxWidth="xs">
+        <CssBaseline/>
+        <div className={classes.paper}>
+          <div>
+            {/* Altera a logo com base no tema */}
+            <img style={{ margin: "0 auto", width: "100%" }} src={theme.palette.type === 'dark' ? logoWhite : logo} alt="Whats" />
+          </div>
+          {/*<Typography component="h1" variant="h5">
+            {i18n.t("login.title")}
+          </Typography>*/}
+          <form className={classes.form} noValidate onSubmit={handlSubmit}>
+            <TextField
+              variant="outlined"
+              margin="normal"
+              required
+              fullWidth
+              id="email"
+              label={i18n.t("login.form.email")}
+              name="email"
+              value={user.email}
+              onChange={handleChangeInput}
+              autoComplete="email"
+              autoFocus
+            />
+            <TextField
+              variant="outlined"
+              margin="normal"
+              required
+              fullWidth
+              name="password"
+              label={i18n.t("login.form.password")}
+              type="password"
+              id="password"
+              value={user.password}
+              onChange={handleChangeInput}
+              autoComplete="current-password"
+            />
+            <Button
+              type="submit"
+              fullWidth
+              variant="contained"
+              color="primary"
+              className={classes.submit}
+            >
+              {i18n.t("login.buttons.submit")}
+            </Button>
+            { <Grid container>
+              <Grid item>
+                <Link
+                  href="#"
+                  variant="body2"
+                  component={RouterLink}
+                  to="/signup"
+                >
+                  {i18n.t("login.buttons.register")}
+                </Link>
+              </Grid>
+            </Grid> }
+          </form>
+        </div>
+      </Container>
+    </div>
   );
 };
 

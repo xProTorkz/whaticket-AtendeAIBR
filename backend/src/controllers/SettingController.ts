@@ -6,6 +6,7 @@ import AppError from "../errors/AppError";
 import UpdateSettingService from "../services/SettingServices/UpdateSettingService";
 import ListSettingsService from "../services/SettingServices/ListSettingsService";
 import CreateAuditLogService from "../services/AuditServices/CreateAuditLogService";
+import Setting from "../models/Setting";
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
   const companyId = req.user?.companyId || 1;
@@ -51,4 +52,55 @@ export const update = async (
   });
 
   return res.status(200).json(setting);
+};
+
+export const publicShow = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const { settingKey: key } = req.params;
+
+  try {
+    const setting = await Setting.findOne({
+      where: { key }
+    });
+
+    return res.status(200).json(setting?.value || null);
+  } catch (err) {
+    return res.status(200).json(null);
+  }
+};
+
+const safeSettingsKeys: Record<string, string> = {
+  groupsTab: "disabled",
+  CheckMsgIsGroup: "disabled",
+  soundGroupNotifications: "disabled"
+};
+
+export const show = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const { settingKey: key } = req.params;
+  const companyId = req.user?.companyId || 1;
+
+  try {
+    const setting = await Setting.findOne({
+      where: {
+        companyId,
+        key
+      }
+    });
+
+    if (!setting && key in safeSettingsKeys) {
+      return res.status(200).json(safeSettingsKeys[key]);
+    }
+
+    return res.status(200).json(setting?.value || "");
+  } catch (err) {
+    if (key in safeSettingsKeys) {
+      return res.status(200).json(safeSettingsKeys[key]);
+    }
+    return res.status(200).json("");
+  }
 };

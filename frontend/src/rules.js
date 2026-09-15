@@ -31,8 +31,23 @@ const rules = {
 		],
 	},
 
+	supervisor: {
+		static: [
+			"dashboard:view",
+			"drawer-tickets:view",
+			"drawer-contacts:view",
+			"drawer-quick-answers:view",
+			"drawer-manager-items:view",
+			"tickets-manager:showall",
+			"user-modal:editQueues",
+			"ticket-options:transferWhatsapp",
+			"users-page:editUser",
+		],
+	},
+
 	manager: {
 		static: [
+			"dashboard:view",
 			"drawer-tickets:view",
 			"drawer-contacts:view",
 			"drawer-quick-answers:view",
@@ -46,6 +61,7 @@ const rules = {
 
 	admin: {
 		static: [
+			"dashboard:view",
 			"drawer-tickets:view",
 			"drawer-contacts:view",
 			"drawer-quick-answers:view",
@@ -61,6 +77,9 @@ const rules = {
 			"contacts-page:deleteContact",
 			"settings:edit",
 			"connections:manage",
+			"connections-page:actionButtons",
+			"connections-page:addConnection",
+			"connections-page:editOrDeleteConnection",
 			"users-page:addUser",
 			"users-page:editUser",
 			"users-page:deleteUser",
@@ -69,6 +88,7 @@ const rules = {
 
 	superadmin: {
 		static: [
+			"dashboard:view",
 			"drawer-tickets:view",
 			"drawer-contacts:view",
 			"drawer-quick-answers:view",
@@ -84,6 +104,9 @@ const rules = {
 			"contacts-page:deleteContact",
 			"settings:edit",
 			"connections:manage",
+			"connections-page:actionButtons",
+			"connections-page:addConnection",
+			"connections-page:editOrDeleteConnection",
 			"companies:manage",
 			"users-page:addUser",
 			"users-page:editUser",

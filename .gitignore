@@ -67,6 +67,10 @@ Desktop.ini
 tmp/
 temp/
 *.tmp
+*.bkp
+*.old
+frontend.backup/
+frontend.backup/**
 
 # Package lock files (per project convention — each sub-project manages its own)
 # Uncomment if you want to exclude them:

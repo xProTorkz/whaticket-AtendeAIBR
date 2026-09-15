@@ -1,15 +1,7 @@
 import rules from "../../rules";
 
 const check = (role, action, data) => {
-	// SuperAdmin bypass
-	if (role === "superadmin" || data?.isSuperAdmin) {
-		return true;
-	}
-
-	// Normaliza perfil legado "user" para "agent"
-	const normalizedRole = role === "user" ? "agent" : role;
-
-	const permissions = rules[normalizedRole];
+	const permissions = rules[role];
 	if (!permissions) {
 		// role is not present in the rules
 		return false;
@@ -18,6 +10,7 @@ const check = (role, action, data) => {
 	const staticPermissions = permissions.static;
 
 	if (staticPermissions && staticPermissions.includes(action)) {
+		// static rule not provided for action
 		return true;
 	}
 
@@ -26,6 +19,7 @@ const check = (role, action, data) => {
 	if (dynamicPermissions) {
 		const permissionCondition = dynamicPermissions[action];
 		if (!permissionCondition) {
+			// dynamic rule not provided for action
 			return false;
 		}
 
@@ -42,4 +36,4 @@ Can.defaultProps = {
 	no: () => null,
 };
 
-export { Can, check };
+export { Can };

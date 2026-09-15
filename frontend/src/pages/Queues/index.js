@@ -1,7 +1,5 @@
 import React, { useEffect, useReducer, useState } from "react";
 
-import openSocket from "../../services/socket-io";
-
 import {
   Button,
   IconButton,
@@ -27,6 +25,7 @@ import { DeleteOutline, Edit } from "@material-ui/icons";
 import QueueModal from "../../components/QueueModal";
 import { toast } from "react-toastify";
 import ConfirmationModal from "../../components/ConfirmationModal";
+import { socketConnection } from "../../services/socket";
 
 const useStyles = makeStyles((theme) => ({
   mainPaper: {
@@ -111,9 +110,10 @@ const Queues = () => {
   }, []);
 
   useEffect(() => {
-    const socket = openSocket();
+    const companyId = localStorage.getItem("companyId");
+    const socket = socketConnection({ companyId });
 
-    socket.on("queue", (data) => {
+    socket.on(`company-${companyId}-queue`, (data) => {
       if (data.action === "update" || data.action === "create") {
         dispatch({ type: "UPDATE_QUEUES", payload: data.queue });
       }
@@ -201,6 +201,9 @@ const Queues = () => {
                 {i18n.t("queues.table.color")}
               </TableCell>
               <TableCell align="center">
+                {i18n.t("queues.table.orderQueue")}
+              </TableCell>
+              <TableCell align="center">
                 {i18n.t("queues.table.greeting")}
               </TableCell>
               <TableCell align="center">
@@ -223,6 +226,17 @@ const Queues = () => {
                           alignSelf: "center",
                         }}
                       />
+                    </div>
+                  </TableCell>
+                  <TableCell align="center">
+                    <div className={classes.customTableCell}>
+                      <Typography
+                        style={{ width: 300, align: "center" }}
+                        noWrap
+                        variant="body2"
+                      >
+                        {queue.orderQueue}
+                      </Typography>
                     </div>
                   </TableCell>
                   <TableCell align="center">

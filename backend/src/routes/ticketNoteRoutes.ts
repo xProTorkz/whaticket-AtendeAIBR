@@ -7,5 +7,6 @@ const ticketNoteRoutes = express.Router();
 ticketNoteRoutes.get("/tickets/:ticketId/notes", isAuth, TicketNoteController.index);
 ticketNoteRoutes.post("/tickets/:ticketId/notes", isAuth, TicketNoteController.store);
 ticketNoteRoutes.delete("/tickets/:ticketId/notes/:noteId", isAuth, TicketNoteController.remove);
+ticketNoteRoutes.delete("/ticket-notes/:noteId", isAuth, TicketNoteController.removeNoteById);
 
 export default ticketNoteRoutes;

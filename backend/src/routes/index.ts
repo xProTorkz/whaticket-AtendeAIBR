@@ -15,6 +15,7 @@ import apiRoutes from "./apiRoutes";
 import companyRoutes from "./companyRoutes";
 import ticketNoteRoutes from "./ticketNoteRoutes";
 import internalChatRoutes from "./internalChatRoutes";
+import dashboardRoutes from "./dashboardRoutes";
 
 const routes = Router();
 
@@ -28,6 +29,7 @@ routes.use(contactRoutes);
 routes.use(ticketRoutes);
 routes.use(ticketNoteRoutes);
 routes.use(internalChatRoutes);
+routes.use(dashboardRoutes);
 routes.use(whatsappRoutes);
 routes.use(messageRoutes);
 routes.use(whatsappSessionRoutes);

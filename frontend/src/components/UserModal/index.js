@@ -4,28 +4,19 @@ import * as Yup from "yup";
 import { Formik, Form, Field } from "formik";
 import { toast } from "react-toastify";
 
-import {
-	Button,
-	Dialog,
-	DialogActions,
-	DialogContent,
-	DialogTitle,
-	CircularProgress,
-	Select,
-	InputLabel,
-	MenuItem,
-	FormControl,
-	TextField,
-	InputAdornment,
-	IconButton,
-	FormControlLabel,
-	Switch
-  } from '@material-ui/core';
-
-import { Visibility, VisibilityOff } from '@material-ui/icons';
-
 import { makeStyles } from "@material-ui/core/styles";
 import { green } from "@material-ui/core/colors";
+import Button from "@material-ui/core/Button";
+import TextField from "@material-ui/core/TextField";
+import Dialog from "@material-ui/core/Dialog";
+import DialogActions from "@material-ui/core/DialogActions";
+import DialogContent from "@material-ui/core/DialogContent";
+import DialogTitle from "@material-ui/core/DialogTitle";
+import CircularProgress from "@material-ui/core/CircularProgress";
+import Select from "@material-ui/core/Select";
+import InputLabel from "@material-ui/core/InputLabel";
+import MenuItem from "@material-ui/core/MenuItem";
+import FormControl from "@material-ui/core/FormControl";
 
 import { i18n } from "../../translate/i18n";
 
@@ -82,17 +73,15 @@ const UserModal = ({ open, onClose, userId }) => {
 		name: "",
 		email: "",
 		password: "",
-		profile: "agent",
-		isSuperAdmin: false
+		profile: "user",
 	};
 
 	const { user: loggedInUser } = useContext(AuthContext);
 
 	const [user, setUser] = useState(initialState);
 	const [selectedQueueIds, setSelectedQueueIds] = useState([]);
-	const [showPassword, setShowPassword] = useState(false);
 	const [whatsappId, setWhatsappId] = useState(false);
-	const {loading, whatsApps} = useWhatsApps();
+	const { loading, whatsApps } = useWhatsApps();
 
 	useEffect(() => {
 		const fetchUser = async () => {
@@ -100,12 +89,7 @@ const UserModal = ({ open, onClose, userId }) => {
 			try {
 				const { data } = await api.get(`/users/${userId}`);
 				setUser(prevState => {
-					return {
-						...prevState,
-						...data,
-						profile: data.profile || "agent",
-						isSuperAdmin: Boolean(data.isSuperAdmin)
-					};
+					return { ...prevState, ...data };
 				});
 				const userQueueIds = data.queues?.map(queue => queue.id);
 				setSelectedQueueIds(userQueueIds);
@@ -125,10 +109,6 @@ const UserModal = ({ open, onClose, userId }) => {
 
 	const handleSaveUser = async values => {
 		const userData = { ...values, whatsappId, queueIds: selectedQueueIds };
-		if (!loggedInUser?.isSuperAdmin) {
-			delete userData.isSuperAdmin;
-			delete userData.companyId;
-		}
 		try {
 			if (userId) {
 				await api.put(`/users/${userId}`, userData);
@@ -184,25 +164,13 @@ const UserModal = ({ open, onClose, userId }) => {
 									/>
 									<Field
 										as={TextField}
-										name="password"
-										variant="outlined"
-										margin="dense"
 										label={i18n.t("userModal.form.password")}
+										type="password"
+										name="password"
 										error={touched.password && Boolean(errors.password)}
 										helperText={touched.password && errors.password}
-										type={showPassword ? 'text' : 'password'}
-										InputProps={{
-										endAdornment: (
-											<InputAdornment position="end">
-											<IconButton
-												aria-label="toggle password visibility"
-												onClick={() => setShowPassword((e) => !e)}
-											>
-												{showPassword ? <VisibilityOff /> : <Visibility />}
-											</IconButton>
-											</InputAdornment>
-										)
-										}}
+										variant="outlined"
+										margin="dense"
 										fullWidth
 									/>
 								</div>
@@ -239,51 +207,17 @@ const UserModal = ({ open, onClose, userId }) => {
 														id="profile-selection"
 														required
 													>
-														<MenuItem value="visitor">
-															{i18n.t("userModal.form.profiles.visitor", "Visitante")}
-														</MenuItem>
-														<MenuItem value="collaborator">
-															{i18n.t("userModal.form.profiles.collaborator", "Colaborador")}
-														</MenuItem>
-														<MenuItem value="agent">
-															{i18n.t("userModal.form.profiles.agent", "Atendente")}
-														</MenuItem>
-														<MenuItem value="manager">
-															{i18n.t("userModal.form.profiles.manager", "Gerente")}
-														</MenuItem>
-														<MenuItem value="admin">
-															{i18n.t("userModal.form.profiles.admin", "Administrador")}
-														</MenuItem>
-														{user.profile === "user" && (
-															<MenuItem value="user">
-																{i18n.t("userModal.form.profiles.user", "Usuário (Legado)")}
-															</MenuItem>
-														)}
+														<MenuItem value="admin">Administrador</MenuItem>
+														<MenuItem value="supervisor">Supervisor</MenuItem>
+														<MenuItem value="agent">Atendente</MenuItem>
+														<MenuItem value="user">Usuário (Legado)</MenuItem>
+														<MenuItem value="visitor">Visitante</MenuItem>
 													</Field>
 												</>
 											)}
 										/>
 									</FormControl>
 								</div>
-								{loggedInUser?.isSuperAdmin && (
-									<div className={classes.multFieldLine} style={{ marginTop: 8, marginBottom: 8, paddingLeft: 4 }}>
-										<Field name="isSuperAdmin">
-											{({ field, form }) => (
-												<FormControlLabel
-													control={
-														<Switch
-															checked={Boolean(field.value)}
-															onChange={e => form.setFieldValue("isSuperAdmin", e.target.checked)}
-															color="secondary"
-															name="isSuperAdmin"
-														/>
-													}
-													label={i18n.t("userModal.form.isSuperAdmin", "Super Administrador (Acesso Global)")}
-												/>
-											)}
-										</Field>
-									</div>
-								)}
 								<Can
 									role={loggedInUser.profile}
 									perform="user-modal:editQueues"
@@ -296,15 +230,18 @@ const UserModal = ({ open, onClose, userId }) => {
 								/>
 								<Can
 									role={loggedInUser.profile}
-									perform="user-modal:editQueues"
-									yes={() => (!loading &&
+									perform="user-modal:editProfile"
+									yes={() => (
 										<FormControl variant="outlined" margin="dense" className={classes.maxWidth} fullWidth>
-											<InputLabel>{i18n.t("userModal.form.whatsapp")}</InputLabel>
+											<InputLabel>
+												{i18n.t("userModal.form.whatsapp")}
+											</InputLabel>
 											<Field
 												as={Select}
 												value={whatsappId}
 												onChange={(e) => setWhatsappId(e.target.value)}
 												label={i18n.t("userModal.form.whatsapp")}
+
 											>
 												<MenuItem value={''}>&nbsp;</MenuItem>
 												{whatsApps.map((whatsapp) => (

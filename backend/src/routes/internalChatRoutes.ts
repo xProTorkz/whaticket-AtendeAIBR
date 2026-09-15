@@ -8,5 +8,6 @@ internalChatRoutes.get("/internal-chat/users", isAuth, InternalMessageController
 internalChatRoutes.get("/internal-chat/:targetUserId?", isAuth, InternalMessageController.index);
 internalChatRoutes.post("/internal-chat", isAuth, InternalMessageController.store);
 internalChatRoutes.post("/internal-chat/read/:targetUserId", isAuth, InternalMessageController.markAsRead);
+internalChatRoutes.put("/internal-chat/read/:targetUserId", isAuth, InternalMessageController.markAsRead);
 
 export default internalChatRoutes;

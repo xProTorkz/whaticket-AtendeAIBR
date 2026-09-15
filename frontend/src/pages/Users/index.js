@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useReducer, useContext } from "react";
+import React, { useState, useEffect, useReducer } from "react";
 import { toast } from "react-toastify";
-import openSocket from "../../services/socket-io";
 
 import { makeStyles } from "@material-ui/core/styles";
 import Paper from "@material-ui/core/Paper";
@@ -8,7 +7,6 @@ import Button from "@material-ui/core/Button";
 import Table from "@material-ui/core/Table";
 import TableBody from "@material-ui/core/TableBody";
 import TableCell from "@material-ui/core/TableCell";
-import Chip from "@material-ui/core/Chip";
 import TableHead from "@material-ui/core/TableHead";
 import TableRow from "@material-ui/core/TableRow";
 import IconButton from "@material-ui/core/IconButton";
@@ -30,8 +28,7 @@ import TableRowSkeleton from "../../components/TableRowSkeleton";
 import UserModal from "../../components/UserModal";
 import ConfirmationModal from "../../components/ConfirmationModal";
 import toastError from "../../errors/toastError";
-import { AuthContext } from "../../context/Auth/AuthContext";
-import { Can } from "../../components/Can";
+import { socketConnection } from "../../services/socket";
 
 const reducer = (state, action) => {
   if (action.type === "LOAD_USERS") {
@@ -89,8 +86,6 @@ const useStyles = makeStyles((theme) => ({
 const Users = () => {
   const classes = useStyles();
 
-  const { user: loggedInUser } = useContext(AuthContext);
-
   const [loading, setLoading] = useState(false);
   const [pageNumber, setPageNumber] = useState(1);
   const [hasMore, setHasMore] = useState(false);
@@ -100,37 +95,6 @@ const Users = () => {
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [searchParam, setSearchParam] = useState("");
   const [users, dispatch] = useReducer(reducer, []);
-
-  const renderProfileBadge = (userItem) => {
-    const profileLabels = {
-      visitor: i18n.t("userModal.form.profiles.visitor", "Visitante"),
-      collaborator: i18n.t("userModal.form.profiles.collaborator", "Colaborador"),
-      agent: i18n.t("userModal.form.profiles.agent", "Atendente"),
-      manager: i18n.t("userModal.form.profiles.manager", "Gerente"),
-      admin: i18n.t("userModal.form.profiles.admin", "Administrador"),
-      user: i18n.t("userModal.form.profiles.user", "Atendente"),
-    };
-
-    const label = profileLabels[userItem.profile] || userItem.profile;
-
-    return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-        <Chip
-          size="small"
-          label={label}
-          color={userItem.profile === "admin" ? "primary" : "default"}
-          variant={userItem.profile === "visitor" || userItem.profile === "collaborator" ? "outlined" : "default"}
-        />
-        {userItem.isSuperAdmin && (
-          <Chip
-            size="small"
-            label="SuperAdmin"
-            color="secondary"
-          />
-        )}
-      </div>
-    );
-  };
 
   useEffect(() => {
     dispatch({ type: "RESET" });
@@ -158,9 +122,10 @@ const Users = () => {
   }, [searchParam, pageNumber]);
 
   useEffect(() => {
-    const socket = openSocket();
+    const companyId = localStorage.getItem("companyId");
+    const socket = socketConnection({ companyId });
 
-    socket.on("user", (data) => {
+    socket.on(`company-${companyId}-user`, (data) => {
       if (data.action === "update" || data.action === "create") {
         dispatch({ type: "UPDATE_USERS", payload: data.user });
       }
@@ -255,19 +220,13 @@ const Users = () => {
               ),
             }}
           />
-          <Can
-            role={loggedInUser?.profile}
-            perform="users-page:addUser"
-            yes={() => (
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleOpenUserModal}
-              >
-                {i18n.t("users.buttons.add")}
-              </Button>
-            )}
-          />
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleOpenUserModal}
+          >
+            {i18n.t("users.buttons.add")}
+          </Button>
         </MainHeaderButtonsWrapper>
       </MainHeader>
       <Paper
@@ -286,9 +245,6 @@ const Users = () => {
                 {i18n.t("users.table.profile")}
               </TableCell>
               <TableCell align="center">
-                {i18n.t("users.table.whatsapp")}
-              </TableCell>              
-              <TableCell align="center">
                 {i18n.t("users.table.actions")}
               </TableCell>
             </TableRow>
@@ -299,43 +255,28 @@ const Users = () => {
                 <TableRow key={user.id}>
                   <TableCell align="center">{user.name}</TableCell>
                   <TableCell align="center">{user.email}</TableCell>
-                  <TableCell align="center">{renderProfileBadge(user)}</TableCell>
-                  <TableCell align="center">{user.whatsapp?.name}</TableCell>
+                  <TableCell align="center">{user.profile}</TableCell>
                   <TableCell align="center">
-                    <Can
-                      role={loggedInUser?.profile}
-                      perform="users-page:editUser"
-                      yes={() => (
-                        <IconButton
-                          size="small"
-                          onClick={() => handleEditUser(user)}
-                        >
-                          <EditIcon />
-                        </IconButton>
-                      )}
-                    />
+                    <IconButton
+                      size="small"
+                      onClick={() => handleEditUser(user)}
+                    >
+                      <EditIcon />
+                    </IconButton>
 
-                    <Can
-                      role={loggedInUser?.profile}
-                      perform="users-page:deleteUser"
-                      yes={() => (
-                        loggedInUser?.id !== user.id && (!user.isSuperAdmin || loggedInUser?.isSuperAdmin) ? (
-                          <IconButton
-                            size="small"
-                            onClick={(e) => {
-                              setConfirmModalOpen(true);
-                              setDeletingUser(user);
-                            }}
-                          >
-                            <DeleteOutlineIcon />
-                          </IconButton>
-                        ) : null
-                      )}
-                    />
+                    <IconButton
+                      size="small"
+                      onClick={(e) => {
+                        setConfirmModalOpen(true);
+                        setDeletingUser(user);
+                      }}
+                    >
+                      <DeleteOutlineIcon />
+                    </IconButton>
                   </TableCell>
                 </TableRow>
               ))}
-              {loading && <TableRowSkeleton columns={5} />}
+              {loading && <TableRowSkeleton columns={4} />}
             </>
           </TableBody>
         </Table>

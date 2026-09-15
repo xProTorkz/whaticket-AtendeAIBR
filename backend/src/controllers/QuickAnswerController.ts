@@ -31,7 +31,7 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
     companyId
   });
 
-  return res.json({ quickAnswers, count, hasMore });
+  return res.json({ quickAnswers, records: quickAnswers, count, hasMore });
 };
 
 export const store = async (req: Request, res: Response): Promise<Response> => {
@@ -68,6 +68,10 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     action: "create",
     quickAnswer
   });
+  io.emit(`company${companyId}-quickemessage`, {
+    action: "create",
+    record: quickAnswer
+  });
   io.emit("quickAnswer", {
     action: "create",
     quickAnswer
@@ -77,7 +81,7 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
 };
 
 export const show = async (req: Request, res: Response): Promise<Response> => {
-  const { quickAnswerId } = req.params;
+  const quickAnswerId = req.params.quickAnswerId || req.params.id;
   const companyId = req.user?.isSuperAdmin ? undefined : req.user?.companyId;
 
   const quickAnswer = await ShowQuickAnswerService(quickAnswerId, companyId);
@@ -103,7 +107,7 @@ export const update = async (
     throw new AppError(err.message);
   }
 
-  const { quickAnswerId } = req.params;
+  const quickAnswerId = req.params.quickAnswerId || req.params.id;
 
   const quickAnswer = await UpdateQuickAnswerService({
     quickAnswerData,
@@ -125,6 +129,10 @@ export const update = async (
     action: "update",
     quickAnswer
   });
+  io.emit(`company${req.user.companyId}-quickemessage`, {
+    action: "update",
+    record: quickAnswer
+  });
   io.emit("quickAnswer", {
     action: "update",
     quickAnswer
@@ -137,7 +145,7 @@ export const remove = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
-  const { quickAnswerId } = req.params;
+  const quickAnswerId = req.params.quickAnswerId || req.params.id;
   const companyId = req.user?.isSuperAdmin ? undefined : req.user?.companyId;
 
   await DeleteQuickAnswerService(quickAnswerId, companyId);
@@ -154,6 +162,10 @@ export const remove = async (
   io.emit(`company-${req.user.companyId}-quickAnswer`, {
     action: "delete",
     quickAnswerId
+  });
+  io.emit(`company${req.user.companyId}-quickemessage`, {
+    action: "delete",
+    id: quickAnswerId
   });
   io.emit("quickAnswer", {
     action: "delete",

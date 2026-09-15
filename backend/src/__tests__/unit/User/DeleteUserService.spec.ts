@@ -4,6 +4,8 @@ import CreateUserService from "../../../services/UserServices/CreateUserService"
 import DeleteUserService from "../../../services/UserServices/DeleteUserService";
 import { disconnect, truncate } from "../../utils/database";
 
+jest.mock("../../../helpers/UpdateDeletedUserOpenTicketsStatus", () => jest.fn());
+
 describe("User", () => {
   beforeEach(async () => {
     await truncate();
