@@ -16,6 +16,7 @@ interface Request {
   email?: string;
   profilePicUrl?: string;
   extraInfo?: ExtraInfo[];
+  optOut?: boolean;
   companyId?: number;
 }
 
@@ -34,6 +35,7 @@ const CreateOrUpdateContactService = async ({
   isGroup,
   email = "",
   extraInfo = [],
+  optOut = false,
   companyId = 1
 }: Request): Promise<Contact> => {
   const number = isGroup ? rawNumber : rawNumber.replace(/[^0-9]/g, "");
@@ -75,7 +77,8 @@ const CreateOrUpdateContactService = async ({
   if (contactByNumber) {
     await contactByNumber.update({
       lid: lid || contactByNumber.lid,
-      profilePicUrl
+      profilePicUrl,
+      optOut: optOut !== undefined ? optOut : contactByNumber.optOut
     });
 
     emitContact("update", contactByNumber, companyId);
@@ -86,7 +89,8 @@ const CreateOrUpdateContactService = async ({
   if (contactByLid) {
     await contactByLid.update({
       number: number || contactByLid.number,
-      profilePicUrl
+      profilePicUrl,
+      optOut: optOut !== undefined ? optOut : contactByLid.optOut
     });
 
     emitContact("update", contactByLid, companyId);
@@ -100,6 +104,7 @@ const CreateOrUpdateContactService = async ({
     profilePicUrl,
     email,
     isGroup,
+    optOut,
     extraInfo,
     companyId
   });

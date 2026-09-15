@@ -112,6 +112,20 @@ export const processScheduleJob = async (job: Job<ScheduleJobData>): Promise<voi
       schedule
     });
 
+    import("../../services/WebhookServices/WebhookDispatcher").then(({ dispatchWebhookEvent }) => {
+      dispatchWebhookEvent({
+        companyId,
+        event: "schedule.sent",
+        data: {
+          id: schedule.id,
+          contactId: schedule.contactId,
+          number: schedule.contact.number,
+          body: schedule.body,
+          sentAt: schedule.sentAt
+        }
+      });
+    }).catch(() => {});
+
     logger.info(`[ScheduleWorker] Schedule ${scheduleId} successfully sent.`);
   } catch (err: any) {
     logger.error(`[ScheduleWorker] Error sending schedule ${scheduleId}: ${err.message}`);
@@ -122,6 +136,18 @@ export const processScheduleJob = async (job: Job<ScheduleJobData>): Promise<voi
 
     schedule.status = "ERRO";
     await schedule.save();
+
+    import("../../services/WebhookServices/WebhookDispatcher").then(({ dispatchWebhookEvent }) => {
+      dispatchWebhookEvent({
+        companyId,
+        event: "schedule.failed",
+        data: {
+          id: schedule.id,
+          contactId: schedule.contactId,
+          error: err.message
+        }
+      });
+    }).catch(() => {});
 
     try {
       const io = getIO();

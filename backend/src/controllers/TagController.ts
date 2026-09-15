@@ -275,10 +275,32 @@ export const updateTicketTag = async (
     if (tag) {
       await TicketTag.destroy({ where: { ticketId } });
       await TicketTag.create({ ticketId: +ticketId, tagId: +tagId });
+
+      import("../services/WebhookServices/WebhookDispatcher").then(({ dispatchWebhookEvent }) => {
+        dispatchWebhookEvent({
+          companyId,
+          event: "tag.added",
+          data: {
+            ticketId: +ticketId,
+            tagId: +tagId,
+            tagName: tag.name
+          }
+        });
+      }).catch(() => {});
     }
   } else {
     // Mover para lane0 (remover tags)
     await TicketTag.destroy({ where: { ticketId } });
+
+    import("../services/WebhookServices/WebhookDispatcher").then(({ dispatchWebhookEvent }) => {
+      dispatchWebhookEvent({
+        companyId,
+        event: "tag.removed",
+        data: {
+          ticketId: +ticketId
+        }
+      });
+    }).catch(() => {});
   }
 
   return res.json({ message: "Ticket tag updated" });
@@ -299,6 +321,16 @@ export const removeTicketTag = async (
   }
 
   await TicketTag.destroy({ where: { ticketId } });
+
+  import("../services/WebhookServices/WebhookDispatcher").then(({ dispatchWebhookEvent }) => {
+    dispatchWebhookEvent({
+      companyId,
+      event: "tag.removed",
+      data: {
+        ticketId: +ticketId
+      }
+    });
+  }).catch(() => {});
 
   return res.json({ message: "Ticket tag removed" });
 };

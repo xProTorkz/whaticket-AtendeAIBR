@@ -37,6 +37,7 @@ import Files from "../pages/Files/";
 import Prompts from "../pages/Prompts";
 import QueueIntegration from "../pages/QueueIntegration";
 import CRM from "../pages/CRM";
+import Integrations from "../pages/Integrations";
 
 const Routes = () => {
   const [showCampaigns, setShowCampaigns] = useState(true);
@@ -101,6 +102,12 @@ const Routes = () => {
                   exact
                   path="/messages-api"
                   component={MessagesAPI}
+                  isPrivate
+                />
+                <Route
+                  exact
+                  path="/integrations"
+                  component={Integrations}
                   isPrivate
                 />
                 <Route

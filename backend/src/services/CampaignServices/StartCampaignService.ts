@@ -23,6 +23,19 @@ const StartCampaignService = async (
 
   await enqueueCampaign(campaign);
 
+  import("../WebhookServices/WebhookDispatcher").then(({ dispatchWebhookEvent }) => {
+    dispatchWebhookEvent({
+      companyId: campaign.companyId,
+      event: "campaign.started",
+      data: {
+        id: campaign.id,
+        name: campaign.name,
+        contactListId: campaign.contactListId,
+        startedAt: new Date()
+      }
+    });
+  }).catch(() => {});
+
   await campaign.reload({
     include: ["contactList", "whatsapp", "shipping"]
   });

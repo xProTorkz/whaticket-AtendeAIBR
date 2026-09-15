@@ -30,6 +30,10 @@ import ContactListItem from "../models/ContactListItem";
 import Campaign from "../models/Campaign";
 import CampaignShipping from "../models/CampaignShipping";
 import CampaignSetting from "../models/CampaignSetting";
+import ApiKey from "../models/ApiKey";
+import ApiIdempotencyKey from "../models/ApiIdempotencyKey";
+import Webhook from "../models/Webhook";
+import WebhookDelivery from "../models/WebhookDelivery";
 
 // eslint-disable-next-line
 const dbConfig = require("../config/database");
@@ -67,7 +71,11 @@ const models = [
   ContactListItem,
   Campaign,
   CampaignShipping,
-  CampaignSetting
+  CampaignSetting,
+  ApiKey,
+  ApiIdempotencyKey,
+  Webhook,
+  WebhookDelivery
 ];
 
 sequelize.addModels(models);

@@ -318,6 +318,18 @@ export const updateCampaignProgressAndNotify = async (campaign: Campaign): Promi
     campaign.status = "FINALIZADA";
     campaign.completedAt = new Date();
     await campaign.save();
+
+    import("../../services/WebhookServices/WebhookDispatcher").then(({ dispatchWebhookEvent }) => {
+      dispatchWebhookEvent({
+        companyId,
+        event: "campaign.finished",
+        data: {
+          id: campaign.id,
+          name: campaign.name,
+          completedAt: campaign.completedAt
+        }
+      });
+    }).catch(() => {});
   }
 
   // Carregar campanha completa com relacionamentos para a notificação

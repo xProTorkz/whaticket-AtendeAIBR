@@ -22,6 +22,9 @@ import scheduleRoutes from "./scheduleRoutes";
 import contactListRoutes from "./contactListRoutes";
 import campaignRoutes from "./campaignRoutes";
 import campaignSettingRoutes from "./campaignSettingRoutes";
+import publicApiRoutes from "./publicApiRoutes";
+import apiKeyRoutes from "./apiKeyRoutes";
+import webhookRoutes from "./webhookRoutes";
 
 const routes = Router();
 
@@ -49,5 +52,8 @@ routes.use(queueRoutes);
 routes.use(quickAnswerRoutes);
 routes.use(companyRoutes);
 routes.use("/api/messages", apiRoutes);
+routes.use("/api/v1", publicApiRoutes);
+routes.use(apiKeyRoutes);
+routes.use(webhookRoutes);
 
 export default routes;

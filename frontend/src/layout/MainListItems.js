@@ -466,9 +466,9 @@ const MainListItems = (props) => {
               </>
             )}
             <ListItemLink
-              to="/financeiro"
-              primary={i18n.t("mainDrawer.listItems.financeiro")}
-              icon={<LocalAtmIcon />}
+              to="/integrations"
+              primary="Integrações & API"
+              icon={<DeviceHubOutlined />}
             />
 
             <ListItemLink

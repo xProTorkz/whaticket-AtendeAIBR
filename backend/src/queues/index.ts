@@ -10,6 +10,11 @@ import {
   closeCampaignWorker,
   CampaignJobData
 } from "./workers/CampaignWorker";
+import {
+  initWebhookWorker,
+  closeWebhookWorker,
+  WebhookJobData
+} from "./workers/WebhookWorker";
 import Schedule from "../models/Schedule";
 import Campaign from "../models/Campaign";
 import CampaignShipping from "../models/CampaignShipping";
@@ -22,6 +27,10 @@ export const scheduleQueue = new Queue<ScheduleJobData>("scheduleQueue", {
 });
 
 export const campaignQueue = new Queue<CampaignJobData>("campaignQueue", {
+  connection: getQueueRedisOptions()
+});
+
+export const webhookQueue = new Queue<WebhookJobData>("webhookQueue", {
   connection: getQueueRedisOptions()
 });
 
@@ -218,13 +227,16 @@ export const cancelCampaignJobs = async (
 export const initQueuesAndWorkers = (): void => {
   initScheduleWorker();
   initCampaignWorker();
-  logger.info("[Queues] BullMQ Schedule and Campaign workers initialized.");
+  initWebhookWorker();
+  logger.info("[Queues] BullMQ Schedule, Campaign and Webhook workers initialized.");
 };
 
 export const closeQueuesAndWorkers = async (): Promise<void> => {
   await closeScheduleWorker();
   await closeCampaignWorker();
+  await closeWebhookWorker();
   await scheduleQueue.close();
   await campaignQueue.close();
+  await webhookQueue.close();
   logger.info("[Queues] BullMQ Queues and workers closed.");
 };

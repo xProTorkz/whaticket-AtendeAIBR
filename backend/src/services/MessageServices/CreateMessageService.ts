@@ -91,6 +91,25 @@ const CreateMessageService = async ({
   const io = getIO();
   const targetCompanyId = message.companyId || message.ticket?.companyId;
 
+  if (targetCompanyId) {
+    import("../WebhookServices/WebhookDispatcher").then(({ dispatchWebhookEvent }) => {
+      dispatchWebhookEvent({
+        companyId: targetCompanyId,
+        event: messageData.fromMe ? "message.sent" : "message.received",
+        data: {
+          id: message.id,
+          ticketId: message.ticketId,
+          contactId: message.contactId || message.ticket?.contactId,
+          body: message.body,
+          fromMe: message.fromMe,
+          mediaType: message.mediaType,
+          mediaUrl: message.mediaUrl,
+          createdAt: message.createdAt
+        }
+      });
+    }).catch(() => {});
+  }
+
   io.to(message.ticketId.toString())
     .to(message.ticket.status)
     .to("notification")
