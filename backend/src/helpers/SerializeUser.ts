@@ -34,14 +34,26 @@ export const SerializeUser = (user: User): SerializedUser => {
     companyData.dueDate = "2099-12-31T23:59:59.000Z";
   }
 
+  let canonicalProfile = user.profile;
+  let isSuper = Boolean(user.isSuperAdmin);
+
+  if (canonicalProfile === "superadmin") {
+    canonicalProfile = "admin";
+    isSuper = true;
+  } else if (canonicalProfile === "supervisor") {
+    canonicalProfile = "manager";
+  } else if (canonicalProfile === "user") {
+    canonicalProfile = "agent";
+  }
+
   return {
     id: user.id,
     name: user.name,
     email: user.email,
-    profile: user.profile,
+    profile: canonicalProfile,
     companyId: user.companyId || 1,
     company: companyData,
-    isSuperAdmin: Boolean(user.isSuperAdmin),
+    isSuperAdmin: isSuper,
     queues: user.queues,
     whatsapp: user.whatsapp
   };

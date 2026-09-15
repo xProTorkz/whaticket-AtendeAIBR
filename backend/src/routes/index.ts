@@ -16,6 +16,8 @@ import companyRoutes from "./companyRoutes";
 import ticketNoteRoutes from "./ticketNoteRoutes";
 import internalChatRoutes from "./internalChatRoutes";
 import dashboardRoutes from "./dashboardRoutes";
+import tagRoutes from "./tagRoutes";
+import crmRoutes from "./crmRoutes";
 
 const routes = Router();
 
@@ -30,6 +32,8 @@ routes.use(ticketRoutes);
 routes.use(ticketNoteRoutes);
 routes.use(internalChatRoutes);
 routes.use(dashboardRoutes);
+routes.use(tagRoutes);
+routes.use(crmRoutes);
 routes.use(whatsappRoutes);
 routes.use(messageRoutes);
 routes.use(whatsappSessionRoutes);

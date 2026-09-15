@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext, useCallback } from "react";
 import { makeStyles } from "@material-ui/core/styles";
 import {
   Paper,
@@ -22,7 +22,16 @@ import {
   Card,
   CardContent,
   InputAdornment,
-  MenuItem
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Select,
+  CircularProgress,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  Divider
 } from "@material-ui/core";
 import {
   Add as AddIcon,
@@ -36,9 +45,15 @@ import {
   Cake as CakeIcon,
   DirectionsCar as CarIcon,
   AttachMoney as MoneyIcon,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  History as HistoryIcon,
+  ViewColumn as KanbanIcon,
+  CheckCircleOutline as CheckIcon
 } from "@material-ui/icons";
+import Board from "react-trello";
 import { toast } from "react-toastify";
+import { AuthContext } from "../../context/Auth/AuthContext";
+import { socketConnection } from "../../services/socket";
 import {
   getCrmClientes,
   saveCrmCliente,
@@ -46,6 +61,9 @@ import {
   getCrmOrdens,
   saveCrmOrdem,
   deleteCrmOrdem,
+  getCrmPipelines,
+  moveCrmDealStage,
+  getDealTimeline,
   getCrmConfig,
   saveCrmConfig,
   getClientesSumidos,
@@ -134,6 +152,7 @@ const emptyOrdem = {
 
 export default function CRM() {
   const classes = useStyles();
+  const { user } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState(0);
 
   // Clientes
@@ -142,33 +161,78 @@ export default function CRM() {
   const [clienteModalOpen, setClienteModalOpen] = useState(false);
   const [clienteFormData, setClienteFormData] = useState(emptyCliente);
 
+  // Pipelines & Funil Kanban
+  const [pipelines, setPipelines] = useState([]);
+  const [selectedPipelineId, setSelectedPipelineId] = useState(null);
+
   // Ordens / Negócios
   const [ordens, setOrdens] = useState([]);
   const [ordemModalOpen, setOrdemModalOpen] = useState(false);
   const [ordemFormData, setOrdemFormData] = useState(emptyOrdem);
 
+  // Timeline Dialog
+  const [timelineModalOpen, setTimelineModalOpen] = useState(false);
+  const [selectedDealForTimeline, setSelectedDealForTimeline] = useState(null);
+  const [timelineEvents, setTimelineEvents] = useState([]);
+  const [loadingTimeline, setLoadingTimeline] = useState(false);
+
   // Automação & Retenção
-  const [config, setConfig] = useState(getCrmConfig());
+  const [config, setConfig] = useState({ diasClienteSumido: 15, mensagemSumido: "", mensagemAniversario: "" });
   const [configModalOpen, setConfigModalOpen] = useState(false);
-  const [configFormData, setConfigFormData] = useState(config);
+  const [configFormData, setConfigFormData] = useState({ diasClienteSumido: 15, mensagemSumido: "", mensagemAniversario: "" });
   const [clientesSumidos, setClientesSumidos] = useState([]);
   const [aniversariantes, setAniversariantes] = useState([]);
 
+  const loadAllData = useCallback(async () => {
+    try {
+      const [clis, ords, pipes, cfg] = await Promise.all([
+        getCrmClientes(),
+        getCrmOrdens(),
+        getCrmPipelines(),
+        getCrmConfig()
+      ]);
+
+      setClientes(clis || []);
+      setOrdens(ords || []);
+      setPipelines(pipes || []);
+      if (pipes && pipes.length > 0 && !selectedPipelineId) {
+        setSelectedPipelineId(pipes[0].id);
+      }
+      setConfig(cfg || {});
+      setConfigFormData(cfg || {});
+
+      const [sumidos, anivs] = await Promise.all([
+        getClientesSumidos(),
+        getClientesAniversariantes()
+      ]);
+      setClientesSumidos(sumidos || []);
+      setAniversariantes(anivs || []);
+    } catch (err) {
+      console.error("Erro ao carregar dados do CRM:", err);
+    }
+  }, [selectedPipelineId]);
+
   useEffect(() => {
     loadAllData();
-  }, []);
+  }, [loadAllData]);
 
-  const loadAllData = () => {
-    const clis = getCrmClientes();
-    const ords = getCrmOrdens();
-    const cfg = getCrmConfig();
-    setClientes(clis);
-    setOrdens(ords);
-    setConfig(cfg);
-    setConfigFormData(cfg);
-    setClientesSumidos(getClientesSumidos(cfg.diasClienteSumido));
-    setAniversariantes(getClientesAniversariantes());
-  };
+  // Realtime Socket
+  useEffect(() => {
+    if (!user?.companyId) return;
+    const socket = socketConnection({ companyId: user.companyId });
+
+    socket.on(`company-${user.companyId}-crm-deal`, () => {
+      loadAllData();
+    });
+
+    socket.on(`company-${user.companyId}-contact`, () => {
+      loadAllData();
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [user?.companyId, loadAllData]);
 
   // Clientes Handlers
   const handleOpenClienteModal = (cliente = null) => {
@@ -180,22 +244,22 @@ export default function CRM() {
     setClienteModalOpen(true);
   };
 
-  const handleSaveCliente = () => {
+  const handleSaveCliente = async () => {
     if (!clienteFormData.nome || !clienteFormData.telefone) {
       toast.error("Nome e Telefone são obrigatórios!");
       return;
     }
-    saveCrmCliente(clienteFormData);
+    await saveCrmCliente(clienteFormData);
     toast.success("Cliente salvo com sucesso!");
     setClienteModalOpen(false);
-    loadAllData();
+    await loadAllData();
   };
 
-  const handleDeleteCliente = (id) => {
+  const handleDeleteCliente = async (id) => {
     if (window.confirm("Deseja realmente excluir este cliente do CRM?")) {
-      deleteCrmCliente(id);
+      await deleteCrmCliente(id);
       toast.success("Cliente removido!");
-      loadAllData();
+      await loadAllData();
     }
   };
 
@@ -213,34 +277,61 @@ export default function CRM() {
     setOrdemModalOpen(true);
   };
 
-  const handleSaveOrdem = () => {
+  const handleSaveOrdem = async () => {
     if (!ordemFormData.descricao || !ordemFormData.clienteId) {
       toast.error("Preencha cliente e descrição da ordem!");
       return;
     }
-    saveCrmOrdem({
+    await saveCrmOrdem({
       ...ordemFormData,
       valor: parseFloat(ordemFormData.valor) || 0
     });
-    toast.success("Ordem de serviço salva!");
+    toast.success("Ordem de serviço / oportunidade salva!");
     setOrdemModalOpen(false);
-    loadAllData();
+    await loadAllData();
   };
 
-  const handleDeleteOrdem = (id) => {
-    if (window.confirm("Deseja excluir esta ordem de serviço?")) {
-      deleteCrmOrdem(id);
-      toast.success("Ordem removida!");
-      loadAllData();
+  const handleDeleteOrdem = async (id) => {
+    if (window.confirm("Deseja excluir esta ordem / oportunidade?")) {
+      await deleteCrmOrdem(id);
+      toast.success("Item removido!");
+      await loadAllData();
+    }
+  };
+
+  // Funil Kanban Handlers
+  const handleDealCardMove = async (fromLaneId, toLaneId, cardId, index) => {
+    try {
+      await moveCrmDealStage(cardId, Number(toLaneId), index);
+      toast.success("Estágio do negócio atualizado!");
+      await loadAllData();
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao mover oportunidade entre estágios");
+    }
+  };
+
+  const handleOpenTimeline = async (deal) => {
+    setSelectedDealForTimeline(deal);
+    setTimelineModalOpen(true);
+    setLoadingTimeline(true);
+    try {
+      const events = await getDealTimeline(deal.id);
+      setTimelineEvents(events || []);
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao carregar histórico comercial");
+    } finally {
+      setLoadingTimeline(false);
     }
   };
 
   // Config Handlers
-  const handleSaveConfig = () => {
-    saveCrmConfig(configFormData);
+  const handleSaveConfig = async () => {
+    await saveCrmConfig(configFormData);
     toast.success("Regras de retenção atualizadas!");
     setConfigModalOpen(false);
-    loadAllData();
+    await loadAllData();
   };
 
   // Disparo WhatsApp
@@ -260,14 +351,84 @@ export default function CRM() {
   );
 
   const totalOrdensAbertas = ordens
-    .filter((o) => o.status === "aberto")
+    .filter((o) => o.status === "aberto" || o.status === "open")
     .reduce((acc, o) => acc + (o.valor || 0), 0);
   const totalOrdensEmAndamento = ordens
     .filter((o) => o.status === "em_andamento")
     .reduce((acc, o) => acc + (o.valor || 0), 0);
   const totalOrdensConcluidas = ordens
-    .filter((o) => o.status === "concluido")
+    .filter((o) => o.status === "concluido" || o.status === "won")
     .reduce((acc, o) => acc + (o.valor || 0), 0);
+
+  // Pipeline ativo e Kanban Data
+  const currentPipeline =
+    pipelines.find((p) => p.id === selectedPipelineId) || pipelines[0];
+
+  const kanbanData = {
+    lanes: (currentPipeline?.stages || []).map((stage) => {
+      const stageDeals = ordens.filter(
+        (o) => o.stageId === stage.id || (!o.stageId && stage.order === 0)
+      );
+      const totalStageValue = stageDeals.reduce((sum, d) => sum + (d.valor || 0), 0);
+
+      return {
+        id: stage.id.toString(),
+        title: stage.name,
+        label: `R$ ${totalStageValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+        style: {
+          backgroundColor: "rgba(245, 247, 250, 0.9)",
+          borderTop: `4px solid ${stage.color || "#3498db"}`,
+          borderRadius: 8,
+          margin: "0 6px",
+          minWidth: 260
+        },
+        cards: stageDeals.map((d) => ({
+          id: d.id.toString(),
+          title: d.clienteNome || "Sem Nome",
+          label: `R$ ${(d.valor || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+          description: (
+            <div style={{ marginTop: 6 }}>
+              <div style={{ fontSize: "0.85rem", color: "#444", marginBottom: 6 }}>
+                {d.descricao}
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <Chip
+                  size="small"
+                  label={d.priority === "high" ? "Alta" : d.priority === "low" ? "Baixa" : "Média"}
+                  style={{
+                    fontSize: "0.7rem",
+                    height: 20,
+                    backgroundColor:
+                      d.priority === "high"
+                        ? "#ffebee"
+                        : d.priority === "low"
+                        ? "#e8f5e9"
+                        : "#fff3e0",
+                    color:
+                      d.priority === "high"
+                        ? "#c62828"
+                        : d.priority === "low"
+                        ? "#2e7d32"
+                        : "#ef6c00"
+                  }}
+                />
+                <Button
+                  size="small"
+                  color="primary"
+                  style={{ textTransform: "none", fontSize: "0.75rem", padding: "2px 6px" }}
+                  startIcon={<HistoryIcon style={{ fontSize: 14 }} />}
+                  onClick={() => handleOpenTimeline(d)}
+                >
+                  Histórico
+                </Button>
+              </div>
+            </div>
+          ),
+          draggable: true
+        }))
+      };
+    })
+  };
 
   return (
     <div className={classes.root}>
@@ -293,7 +454,7 @@ export default function CRM() {
               Novo Cliente
             </Button>
           )}
-          {activeTab === 1 && (
+          {(activeTab === 1 || activeTab === 2) && (
             <Button
               variant="contained"
               color="primary"
@@ -301,10 +462,10 @@ export default function CRM() {
               className={classes.actionButton}
               onClick={() => handleOpenOrdemModal()}
             >
-              Nova Ordem / Negócio
+              Nova Oportunidade
             </Button>
           )}
-          {activeTab === 2 && (
+          {activeTab === 3 && (
             <Button
               variant="outlined"
               color="primary"
@@ -328,7 +489,8 @@ export default function CRM() {
           variant="standard"
         >
           <Tab icon={<PersonIcon />} label="Clientes & Leads" />
-          <Tab icon={<ReceiptIcon />} label="Negócios & Ordens de Serviço" />
+          <Tab icon={<KanbanIcon />} label="Funil de Vendas (Kanban)" />
+          <Tab icon={<ReceiptIcon />} label="Oportunidades & Ordens" />
           <Tab icon={<AutorenewIcon />} label="Automação & Retenção" />
         </Tabs>
       </Paper>
@@ -451,8 +613,48 @@ export default function CRM() {
         </>
       )}
 
-      {/* TAB 1: NEGÓCIOS & ORDENS */}
+      {/* TAB 1: FUNIL DE VENDAS KANBAN */}
       {activeTab === 1 && (
+        <>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              {pipelines.length > 1 && (
+                <FormControl variant="outlined" size="small" style={{ minWidth: 200, backgroundColor: "#fff" }}>
+                  <InputLabel>Funil Selecionado</InputLabel>
+                  <Select
+                    value={selectedPipelineId || (pipelines[0] && pipelines[0].id) || ""}
+                    onChange={(e) => setSelectedPipelineId(Number(e.target.value))}
+                    label="Funil Selecionado"
+                  >
+                    {pipelines.map((p) => (
+                      <MenuItem key={p.id} value={p.id}>
+                        {p.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              )}
+              <Typography variant="subtitle1" style={{ fontWeight: 600, color: "#555" }}>
+                {currentPipeline?.name || "Funil de Vendas"} • {ordens.length} oportunidade(s)
+              </Typography>
+            </div>
+            <Typography variant="subtitle2" style={{ fontWeight: 700, color: "#2e7d32" }}>
+              Total no Funil: R$ {ordens.reduce((sum, d) => sum + (d.valor || 0), 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+            </Typography>
+          </div>
+
+          <div style={{ overflowX: "auto", minHeight: "65vh" }}>
+            <Board
+              data={kanbanData}
+              onCardMoveAcrossLanes={handleDealCardMove}
+              style={{ backgroundColor: "transparent" }}
+            />
+          </div>
+        </>
+      )}
+
+      {/* TAB 2: NEGÓCIOS & ORDENS */}
+      {activeTab === 2 && (
         <>
           <Grid container spacing={3} style={{ marginBottom: 24 }}>
             <Grid item xs={12} sm={4}>
@@ -519,7 +721,7 @@ export default function CRM() {
                   <TableRow>
                     <TableCell colSpan={6} align="center" style={{ padding: 40 }}>
                       <Typography color="textSecondary">
-                        Nenhuma ordem de serviço cadastrada. Clique em "Nova Ordem / Negócio".
+                        Nenhuma ordem de serviço cadastrada. Clique em "Nova Oportunidade".
                       </Typography>
                     </TableCell>
                   </TableRow>
@@ -536,7 +738,7 @@ export default function CRM() {
                         <Chip
                           size="small"
                           label={
-                            ord.status === "concluido"
+                            ord.status === "concluido" || ord.status === "won"
                               ? "Concluído"
                               : ord.status === "em_andamento"
                               ? "Em Andamento"
@@ -545,13 +747,13 @@ export default function CRM() {
                           className={classes.chipStatus}
                           style={{
                             backgroundColor:
-                              ord.status === "concluido"
+                              ord.status === "concluido" || ord.status === "won"
                                 ? "#e8f5e9"
                                 : ord.status === "em_andamento"
                                 ? "#e3f2fd"
                                 : "#fff3e0",
                             color:
-                              ord.status === "concluido"
+                              ord.status === "concluido" || ord.status === "won"
                                 ? "#2e7d32"
                                 : ord.status === "em_andamento"
                                 ? "#1565c0"
@@ -560,6 +762,14 @@ export default function CRM() {
                         />
                       </TableCell>
                       <TableCell align="center">
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          title="Histórico / Linha do Tempo"
+                          onClick={() => handleOpenTimeline(ord)}
+                        >
+                          <HistoryIcon fontSize="small" />
+                        </IconButton>
                         <IconButton
                           size="small"
                           color="primary"
@@ -586,8 +796,8 @@ export default function CRM() {
         </>
       )}
 
-      {/* TAB 2: AUTOMAÇÃO & RETENÇÃO */}
-      {activeTab === 2 && (
+      {/* TAB 3: AUTOMAÇÃO & RETENÇÃO */}
+      {activeTab === 3 && (
         <Grid container spacing={3}>
           {/* Inativos / Sumidos */}
           <Grid item xs={12} md={6}>
@@ -968,6 +1178,58 @@ export default function CRM() {
           <Button variant="contained" color="primary" onClick={handleSaveConfig}>
             Salvar Regras
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* MODAL: HISTÓRICO COMERCIAL / TIMELINE */}
+      <Dialog
+        open={timelineModalOpen}
+        onClose={() => setTimelineModalOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <HistoryIcon color="primary" /> Histórico Comercial & Auditoria
+        </DialogTitle>
+        <DialogContent dividers>
+          {loadingTimeline ? (
+            <div style={{ display: "flex", justifyContent: "center", padding: 30 }}>
+              <CircularProgress size={32} />
+            </div>
+          ) : timelineEvents.length === 0 ? (
+            <Typography color="textSecondary" align="center" style={{ padding: 20 }}>
+              Nenhum evento registrado nesta linha do tempo comercial.
+            </Typography>
+          ) : (
+            <List>
+              {timelineEvents.map((evt) => (
+                <React.Fragment key={evt.id}>
+                  <ListItem alignItems="flex-start">
+                    <ListItemIcon style={{ minWidth: 36, marginTop: 4 }}>
+                      <CheckIcon style={{ color: "#4caf50" }} fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={
+                        <Typography variant="body2" style={{ fontWeight: 600 }}>
+                          {evt.description || evt.action}
+                        </Typography>
+                      }
+                      secondary={
+                        <Typography variant="caption" color="textSecondary">
+                          {evt.createdAt ? new Date(evt.createdAt).toLocaleString("pt-BR") : ""}
+                          {evt.user?.name ? ` • Por ${evt.user.name}` : ""}
+                        </Typography>
+                      }
+                    />
+                  </ListItem>
+                  <Divider component="li" />
+                </React.Fragment>
+              ))}
+            </List>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setTimelineModalOpen(false)}>Fechar</Button>
         </DialogActions>
       </Dialog>
     </div>

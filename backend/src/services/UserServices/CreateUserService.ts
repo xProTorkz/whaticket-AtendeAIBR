@@ -58,14 +58,31 @@ const CreateUserService = async ({
     throw new AppError(err.message);
   }
 
+  let canonicalProfile = profile;
+  let superAdminFlag = Boolean(isSuperAdmin);
+
+  if (canonicalProfile === "superadmin") {
+    canonicalProfile = "admin";
+    superAdminFlag = true;
+  } else if (canonicalProfile === "supervisor") {
+    canonicalProfile = "manager";
+  } else if (canonicalProfile === "user") {
+    canonicalProfile = "agent";
+  }
+
+  const validProfiles = ["visitor", "collaborator", "agent", "manager", "admin"];
+  if (!validProfiles.includes(canonicalProfile)) {
+    canonicalProfile = "agent";
+  }
+
   const user = await User.create(
     {
       email,
       password,
       name,
-      profile,
+      profile: canonicalProfile,
       companyId: companyId || 1,
-      isSuperAdmin: Boolean(isSuperAdmin),
+      isSuperAdmin: superAdminFlag,
       whatsappId: whatsappId ? whatsappId : null
     },
     { include: ["queues", "whatsapp"] }

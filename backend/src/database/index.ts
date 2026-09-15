@@ -15,6 +15,14 @@ import WppKey from "../models/WppKey";
 import AuditLog from "../models/AuditLog";
 import TicketNote from "../models/TicketNote";
 import InternalMessage from "../models/InternalMessage";
+import Tag from "../models/Tag";
+import TicketTag from "../models/TicketTag";
+import ContactTag from "../models/ContactTag";
+import Pipeline from "../models/Pipeline";
+import PipelineStage from "../models/PipelineStage";
+import Deal from "../models/Deal";
+import DealTimeline from "../models/DealTimeline";
+import CrmConfig from "../models/CrmConfig";
 
 // eslint-disable-next-line
 const dbConfig = require("../config/database");
@@ -37,7 +45,15 @@ const models = [
   WppKey,
   AuditLog,
   TicketNote,
-  InternalMessage
+  InternalMessage,
+  Tag,
+  TicketTag,
+  ContactTag,
+  Pipeline,
+  PipelineStage,
+  Deal,
+  DealTimeline,
+  CrmConfig
 ];
 
 sequelize.addModels(models);

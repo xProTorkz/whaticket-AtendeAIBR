@@ -27,11 +27,23 @@ const isAuth = (req: Request, res: Response, next: NextFunction): void => {
     const decoded = verify(token, authConfig.secret);
     const { id, profile, companyId, isSuperAdmin } = decoded as TokenPayload;
 
+    let canonicalProfile = profile;
+    let isSuper = Boolean(isSuperAdmin);
+
+    if (canonicalProfile === "superadmin") {
+      canonicalProfile = "admin";
+      isSuper = true;
+    } else if (canonicalProfile === "supervisor") {
+      canonicalProfile = "manager";
+    } else if (canonicalProfile === "user") {
+      canonicalProfile = "agent";
+    }
+
     req.user = {
       id,
-      profile,
+      profile: canonicalProfile,
       companyId: Number(companyId || 1),
-      isSuperAdmin: Boolean(isSuperAdmin)
+      isSuperAdmin: isSuper
     };
   } catch (err) {
     throw new AppError(

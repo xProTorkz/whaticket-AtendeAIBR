@@ -61,20 +61,42 @@ const UpdateUserService = async ({
     throw new AppError(err.message);
   }
 
+  let canonicalProfile = profile;
+  let superAdminFlag = isSuperAdmin;
+
+  if (canonicalProfile !== undefined) {
+    if (canonicalProfile === "superadmin") {
+      canonicalProfile = "admin";
+      superAdminFlag = true;
+    } else if (canonicalProfile === "supervisor") {
+      canonicalProfile = "manager";
+    } else if (canonicalProfile === "user") {
+      canonicalProfile = "agent";
+    }
+
+    const validProfiles = ["visitor", "collaborator", "agent", "manager", "admin"];
+    if (!validProfiles.includes(canonicalProfile)) {
+      canonicalProfile = user.profile;
+    }
+  }
+
   const updateData: any = {
     email,
     password,
-    profile,
     name,
     whatsappId: whatsappId ? whatsappId : null
   };
+
+  if (canonicalProfile !== undefined) {
+    updateData.profile = canonicalProfile;
+  }
 
   if (newCompanyId !== undefined) {
     updateData.companyId = newCompanyId;
   }
 
-  if (isSuperAdmin !== undefined) {
-    updateData.isSuperAdmin = isSuperAdmin;
+  if (superAdminFlag !== undefined) {
+    updateData.isSuperAdmin = superAdminFlag;
   }
 
   await user.update(updateData);

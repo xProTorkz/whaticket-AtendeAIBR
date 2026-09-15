@@ -208,10 +208,12 @@ const UserModal = ({ open, onClose, userId }) => {
 														required
 													>
 														<MenuItem value="admin">Administrador</MenuItem>
-														<MenuItem value="supervisor">Supervisor</MenuItem>
-														<MenuItem value="agent">Atendente</MenuItem>
-														<MenuItem value="user">Usuário (Legado)</MenuItem>
+														<MenuItem value="manager">Gerente / Supervisor</MenuItem>
+														<MenuItem value="agent">Atendente / Operador</MenuItem>
+														<MenuItem value="collaborator">Colaborador Interno</MenuItem>
 														<MenuItem value="visitor">Visitante</MenuItem>
+														<MenuItem value="supervisor">Supervisor (Legado)</MenuItem>
+														<MenuItem value="user">Usuário (Legado)</MenuItem>
 													</Field>
 												</>
 											)}
