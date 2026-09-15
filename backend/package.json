@@ -10,7 +10,7 @@
     "dev": "ts-node-dev --respawn --transpile-only --ignore node_modules src/server.ts",
     "pretest": "NODE_ENV=test sequelize db:migrate && NODE_ENV=test sequelize db:seed:all",
     "test": "NODE_ENV=test jest --runInBand",
-    "posttest": "NODE_ENV=test sequelize db:migrate:undo:all",
+    "posttest": "NODE_ENV=test sequelize db:seed:undo:all && NODE_ENV=test sequelize db:migrate:undo:all",
     "db:migrate": "npm run build && sequelize db:migrate",
     "db:seed": "sequelize db:seed:all",
     "format": "prettier --write \"src/**/*.ts\""
@@ -24,6 +24,7 @@
     "@types/lodash": "^4.17.5",
     "@types/pino": "^6.3.4",
     "bcryptjs": "^2.4.3",
+    "bullmq": "^6.3.6",
     "cookie-parser": "^1.4.5",
     "cors": "^2.8.5",
     "date-fns": "^2.16.1",
@@ -53,6 +54,7 @@
     "uuid": "^8.3.2",
     "whaileys": "^6.4.3",
     "whatsapp-web.js": "github:pedroslopez/whatsapp-web.js#main",
+    "xlsx": "^0.18.5",
     "yup": "^0.32.8"
   },
   "devDependencies": {

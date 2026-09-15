@@ -48,6 +48,10 @@ class Contact extends Model<Contact> {
   @Column
   isGroup: boolean;
 
+  @Default(false)
+  @Column
+  optOut: boolean;
+
   @Default(1)
   @ForeignKey(() => Company)
   @Column

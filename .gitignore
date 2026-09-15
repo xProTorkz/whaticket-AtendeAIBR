@@ -58,6 +58,7 @@ Desktop.ini
 *.bak
 *.sqlite
 *.sqlite3
+*.rdb
 
 # Session files
 *.session

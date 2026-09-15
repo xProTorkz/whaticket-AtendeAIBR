@@ -24,6 +24,12 @@ import Deal from "../models/Deal";
 import DealTimeline from "../models/DealTimeline";
 import CrmConfig from "../models/CrmConfig";
 import TicketLifecycleEvent from "../models/TicketLifecycleEvent";
+import Schedule from "../models/Schedule";
+import ContactList from "../models/ContactList";
+import ContactListItem from "../models/ContactListItem";
+import Campaign from "../models/Campaign";
+import CampaignShipping from "../models/CampaignShipping";
+import CampaignSetting from "../models/CampaignSetting";
 
 // eslint-disable-next-line
 const dbConfig = require("../config/database");
@@ -55,7 +61,13 @@ const models = [
   Deal,
   DealTimeline,
   CrmConfig,
-  TicketLifecycleEvent
+  TicketLifecycleEvent,
+  Schedule,
+  ContactList,
+  ContactListItem,
+  Campaign,
+  CampaignShipping,
+  CampaignSetting
 ];
 
 sequelize.addModels(models);

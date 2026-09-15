@@ -73,11 +73,11 @@ const usePlans = () => {
         } catch (err) {
             return {
                 plan: {
-                    useCampaigns: false,
+                    useCampaigns: true,
                     useKanban: true,
                     useOpenAi: false,
                     useIntegrations: false,
-                    useSchedules: false,
+                    useSchedules: true,
                     useInternalChat: true,
                     useExternalApi: true
                 }

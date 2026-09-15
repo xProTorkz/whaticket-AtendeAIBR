@@ -39,7 +39,7 @@ import QueueIntegration from "../pages/QueueIntegration";
 import CRM from "../pages/CRM";
 
 const Routes = () => {
-  const [showCampaigns, setShowCampaigns] = useState(false);
+  const [showCampaigns, setShowCampaigns] = useState(true);
 
   useEffect(() => {
     const cshow = localStorage.getItem("cshow");

@@ -18,6 +18,10 @@ import internalChatRoutes from "./internalChatRoutes";
 import dashboardRoutes from "./dashboardRoutes";
 import tagRoutes from "./tagRoutes";
 import crmRoutes from "./crmRoutes";
+import scheduleRoutes from "./scheduleRoutes";
+import contactListRoutes from "./contactListRoutes";
+import campaignRoutes from "./campaignRoutes";
+import campaignSettingRoutes from "./campaignSettingRoutes";
 
 const routes = Router();
 
@@ -34,6 +38,10 @@ routes.use(internalChatRoutes);
 routes.use(dashboardRoutes);
 routes.use(tagRoutes);
 routes.use(crmRoutes);
+routes.use(scheduleRoutes);
+routes.use(contactListRoutes);
+routes.use(campaignRoutes);
+routes.use(campaignSettingRoutes);
 routes.use(whatsappRoutes);
 routes.use(messageRoutes);
 routes.use(whatsappSessionRoutes);

@@ -4,6 +4,7 @@ import { initIO } from "./libs/socket";
 import { logger } from "./utils/logger";
 import { initRedis } from "./libs/redisStore";
 import { StartAllWhatsAppsSessions } from "./services/WbotServices/StartAllWhatsAppsSessions";
+import { initQueuesAndWorkers, closeQueuesAndWorkers } from "./queues";
 
 const server = app.listen(process.env.PORT, () => {
   logger.info(`Server started on port: ${process.env.PORT}`);
@@ -11,8 +12,13 @@ const server = app.listen(process.env.PORT, () => {
 
 initIO(server);
 initRedis();
+initQueuesAndWorkers();
 StartAllWhatsAppsSessions();
-gracefulShutdown(server);
+gracefulShutdown(server, {
+  onShutdown: async () => {
+    await closeQueuesAndWorkers();
+  }
+});
 
 process.on("uncaughtException", err => {
   logger.error({ info: "Global uncaught exception", err });

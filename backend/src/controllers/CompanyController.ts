@@ -16,6 +16,27 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
   return res.status(200).json(companies);
 };
 
+export const listPlan = async (req: Request, res: Response): Promise<Response> => {
+  const { id } = req.params;
+  const companyId = Number(id);
+
+  if (!req.user?.isSuperAdmin && req.user?.companyId !== companyId) {
+    throw new AppError("ERR_NO_PERMISSION", 403);
+  }
+
+  return res.status(200).json({
+    plan: {
+      useCampaigns: true,
+      useKanban: true,
+      useOpenAi: false,
+      useIntegrations: false,
+      useSchedules: true,
+      useInternalChat: true,
+      useExternalApi: true
+    }
+  });
+};
+
 export const show = async (req: Request, res: Response): Promise<Response> => {
   const { id } = req.params;
   const companyId = Number(id);
