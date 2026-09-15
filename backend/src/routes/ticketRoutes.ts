@@ -24,6 +24,13 @@ ticketRoutes.get(
   TicketController.show
 );
 
+ticketRoutes.get(
+  "/tickets/:ticketId/lifecycle",
+  isAuth,
+  isCollaboratorOrAbove,
+  TicketController.showLifecycle
+);
+
 ticketRoutes.post(
   "/tickets",
   isAuth,

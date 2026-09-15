@@ -10,6 +10,9 @@ import SendWhatsAppMessage from "../services/WbotServices/SendWhatsAppMessage";
 import ShowWhatsAppService from "../services/WhatsappService/ShowWhatsAppService";
 import formatBody from "../helpers/Mustache";
 import CreateAuditLogService from "../services/AuditServices/CreateAuditLogService";
+import TicketLifecycleEvent from "../models/TicketLifecycleEvent";
+import User from "../models/User";
+import Queue from "../models/Queue";
 
 type IndexQuery = {
   searchParam: string;
@@ -159,4 +162,27 @@ export const remove = async (
     });
 
   return res.status(200).json({ message: "ticket deleted" });
+};
+
+export const showLifecycle = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const { ticketId } = req.params;
+  const companyId = req.user?.isSuperAdmin ? undefined : req.user?.companyId;
+
+  const ticket = await ShowTicketService(ticketId, companyId);
+  const events = await TicketLifecycleEvent.findAll({
+    where: {
+      ticketId: ticket.id,
+      companyId: ticket.companyId
+    },
+    include: [
+      { model: User, as: "user", attributes: ["id", "name", "email"] },
+      { model: Queue, as: "queue", attributes: ["id", "name", "color"] }
+    ],
+    order: [["createdAt", "ASC"]]
+  });
+
+  return res.status(200).json(events);
 };

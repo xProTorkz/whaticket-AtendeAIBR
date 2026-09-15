@@ -155,3 +155,36 @@ Auditoria funcional detalhada do frontend avançado sincronizado a partir de `At
 | **Faturamento** | Financeiro e Planos (`/financeiro`, `/subscription`) | Sem backend correspondente | Esperaria `GET /invoices`, `GET /plans` | Hook `usePlans` quebrava a renderização com erro 404 em rotas de billing ausentes. | Adicionado tratamento defensivo (`try/catch`) com plano default no `usePlans`, eliminando crashes de tela. | Implementação do módulo completo de faturamento/billing na fase dedicada. |
 | **IA & Chatbots** | Integrações Typebot / N8N / Webhooks (`/prompts`, `/queue-integration`) | Sem backend correspondente | Esperaria `/prompts`, `/queueIntegrations` | Recursos avançados de inteligência artificial e webhooks externos. | Telas catalogadas e mantidas isoladas. | Implementação nas fases de automações e IA. |
 | **Ajuda e Avisos** | Central de Ajuda e Comunicados (`/helps`, `/announcements`) | Sem backend correspondente | Esperaria `/helps`, `/announcements` | Telas de ajuda e comunicados sem tabelas correspondentes. | Visual preservado. | Implementação de comunicados globais em fase posterior. |
+
+## Camada de Filas, Triagem, SLA e Métricas Operacionais (Issue #15)
+
+Implementação completa do ciclo de vida dos tickets, histórico persistente de movimentações, medições reais de SLA e métricas operacionais por fila, atendente e período.
+
+### 1. Ciclo de Vida do Atendimento (`TicketLifecycleEvent`)
+- **Tabela `TicketLifecycleEvents`**: Registra com data/hora exata, empresa (`companyId`), ticket (`ticketId`), usuário (`userId`), fila (`queueId`) e durações:
+  - `queue_entered`: Entrada na fila (inbound inicial, transferência ou reabertura).
+  - `assigned`: Primeira atribuição de atendente ao ticket.
+  - `started`: Início do atendimento (transição de status `pending` para `open`), calculando o tempo de espera real `waitDurationSeconds`.
+  - `first_response`: Primeira resposta humana enviada pelo atendente, registrando o tempo decorrido desde o início/criação e atualizando `firstResponseAt`.
+  - `queue_transferred`: Transferência entre filas / departamentos, salvando `previousQueueId` e resetando o contador de espera na nova fila (`queueEnteredAt`).
+  - `user_transferred`: Reatribuição entre atendentes, salvando `previousUserId`.
+  - `closed`: Encerramento do atendimento, calculando a duração real do suporte `supportDurationSeconds` (`closedAt - startedAt`).
+  - `reopened`: Reabertura do atendimento pelo cliente ou atendente, resetando `closedAt` e reiniciando a fila.
+- **Campos adicionados à tabela `Tickets`**: `queueEnteredAt`, `startedAt`, `firstResponseAt`, `closedAt`.
+- **Configuração de SLA**: Campo `sla` (em minutos, padrão 15) adicionado à tabela `Queues`.
+
+### 2. Métricas Operacionais e Dashboard
+- **`avgWaitTime` Real**: Tempo médio em minutos que os tickets levaram para sair da fila e iniciar atendimento (`startedAt - queueEnteredAt`). Retorna `null` caso nenhum ticket tenha sido iniciado no período.
+- **`avgSupportTime` Revisado**: Tempo médio real de atendimento calculado pelo ciclo de serviço (`closedAt - startedAt`), eliminando cálculos genéricos. Retorna `null` se nenhum ticket tiver sido fechado.
+- **Detecção de Quebra de SLA (`waitingAboveSla`)**: Monitoramento ativo de tickets pendentes cujo tempo na fila excede o SLA configurado para sua fila (ou 15 minutos por padrão).
+- **Métricas por Fila/Departamento**: Consolidação de tickets aguardando, tickets acima do SLA, finalizados, tempo médio de espera e tempo médio de suporte para cada fila.
+- **Métricas por Atendente**: Exibição de tickets abertos, finalizados, total no período, tempo médio de atendimento individual e status online em tempo real.
+- **Interface Web**:
+  - Novo card no topo: "Acima do SLA" com destaque de alerta.
+  - Componente `TableSlaAlerts`: Tabela destacada com lista dos tickets atrasados, contato, fila, tempo de espera e minutos de atraso.
+  - Componente `TableQueuesStatus`: Tabela comparativa de métricas operacionais por departamento/fila.
+  - Formatação defensiva: exibição de `"--"` em vez de valores incorretos quando não houver amostras no período.
+- **Tempo Real & API**:
+  - Evento de Socket.IO segregado por tenant: `company-${companyId}-ticket-lifecycle`.
+  - Endpoint REST seguro: `GET /tickets/:ticketId/lifecycle` com validação de permissão e isolamento por empresa.
+

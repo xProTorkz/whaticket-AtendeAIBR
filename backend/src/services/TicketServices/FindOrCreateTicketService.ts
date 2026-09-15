@@ -3,6 +3,7 @@ import { Op } from "sequelize";
 import Contact from "../../models/Contact";
 import Ticket from "../../models/Ticket";
 import ShowTicketService from "./ShowTicketService";
+import CreateTicketLifecycleEventService from "./CreateTicketLifecycleEventService";
 
 const FindOrCreateTicketService = async (
   contact: Contact,
@@ -42,7 +43,24 @@ const FindOrCreateTicketService = async (
       await ticket.update({
         status: "pending",
         userId: null,
-        unreadMessages
+        unreadMessages,
+        queueEnteredAt: new Date(),
+        startedAt: null,
+        firstResponseAt: null,
+        closedAt: null
+      });
+
+      await CreateTicketLifecycleEventService({
+        ticketId: ticket.id,
+        companyId: effectiveCompanyId,
+        type: "reopened",
+        details: "Reaberto por mensagem de grupo"
+      });
+      await CreateTicketLifecycleEventService({
+        ticketId: ticket.id,
+        companyId: effectiveCompanyId,
+        type: "queue_entered",
+        queueId: ticket.queueId
       });
     }
   }
@@ -64,19 +82,46 @@ const FindOrCreateTicketService = async (
       await ticket.update({
         status: "pending",
         userId: null,
-        unreadMessages
+        unreadMessages,
+        queueEnteredAt: new Date(),
+        startedAt: null,
+        firstResponseAt: null,
+        closedAt: null
+      });
+
+      await CreateTicketLifecycleEventService({
+        ticketId: ticket.id,
+        companyId: effectiveCompanyId,
+        type: "reopened",
+        details: "Reaberto por mensagem do contato"
+      });
+      await CreateTicketLifecycleEventService({
+        ticketId: ticket.id,
+        companyId: effectiveCompanyId,
+        type: "queue_entered",
+        queueId: ticket.queueId
       });
     }
   }
 
   if (!ticket) {
+    const now = new Date();
     ticket = await Ticket.create({
       contactId: groupContact ? groupContact.id : contact.id,
       status: "pending",
       isGroup: !!groupContact,
       unreadMessages,
       whatsappId,
+      queueEnteredAt: now,
       companyId: effectiveCompanyId
+    });
+
+    await CreateTicketLifecycleEventService({
+      ticketId: ticket.id,
+      companyId: effectiveCompanyId,
+      type: "queue_entered",
+      queueId: ticket.queueId,
+      details: "Ticket criado por mensagem inbound"
     });
   }
 

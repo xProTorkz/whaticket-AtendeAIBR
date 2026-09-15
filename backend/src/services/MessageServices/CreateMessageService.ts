@@ -2,6 +2,7 @@ import { getIO } from "../../libs/socket";
 import Message from "../../models/Message";
 import Ticket from "../../models/Ticket";
 import Whatsapp from "../../models/Whatsapp";
+import CreateTicketLifecycleEventService from "../TicketServices/CreateTicketLifecycleEventService";
 
 interface MessageData {
   id: string;
@@ -64,6 +65,27 @@ const CreateMessageService = async ({
 
   if (!message) {
     throw new Error("ERR_CREATING_MESSAGE");
+  }
+
+  // Registra primeiro atendimento / primeira resposta humana
+  if (messageData.fromMe && message.ticket && !message.ticket.firstResponseAt) {
+    const now = new Date();
+    const refStart = message.ticket.startedAt || message.ticket.createdAt;
+    const responseDurationSeconds = refStart
+      ? Math.max(0, Math.round((now.getTime() - new Date(refStart).getTime()) / 1000))
+      : null;
+
+    await message.ticket.update({ firstResponseAt: now });
+
+    await CreateTicketLifecycleEventService({
+      ticketId: message.ticket.id,
+      companyId: message.ticket.companyId,
+      userId: message.ticket.userId || null,
+      queueId: message.ticket.queueId || null,
+      type: "first_response",
+      waitDurationSeconds: responseDurationSeconds,
+      details: JSON.stringify({ messageId: message.id })
+    });
   }
 
   const io = getIO();

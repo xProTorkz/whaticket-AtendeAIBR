@@ -49,10 +49,10 @@ export default function TableAttendantsStatus(props) {
         return attendants.map((a, k) => (
             <TableRow key={k}>
                 <TableCell>{a.name}</TableCell>
-                <TableCell align="center" title="1 - Insatisfeito, 2 - Satisfeito, 3 - Muito Satisfeito" className={classes.pointer}>
-                    <RatingBox rating={a.rating} />
-                </TableCell>
-                <TableCell align="center">{formatTime(a.avgSupportTime, 2)}</TableCell>
+                <TableCell align="center">{a.openTickets ?? 0}</TableCell>
+                <TableCell align="center">{a.closedTickets ?? 0}</TableCell>
+                <TableCell align="center">{a.tickets ?? 0}</TableCell>
+                <TableCell align="center">{formatTime(a.avgSupportTime)}</TableCell>
                 <TableCell align="center">
                     { a.online ?
                         <CheckCircleIcon className={classes.on} />
@@ -64,7 +64,12 @@ export default function TableAttendantsStatus(props) {
     }
 
 	function formatTime(minutes){
-		return moment().startOf('day').add(minutes, 'minutes').format('HH[h] mm[m]');
+        if (minutes === null || minutes === undefined || isNaN(minutes)) {
+            return "--";
+        }
+        const h = Math.floor(minutes / 60);
+        const m = minutes % 60;
+        return h > 0 ? `${h}h ${m}m` : `${m}m`;
 	}
 
     return ( !loading ?
@@ -73,29 +78,15 @@ export default function TableAttendantsStatus(props) {
                 <TableHead>
                     <TableRow>
                         <TableCell>Nome</TableCell>
-                        <TableCell align="center">Avaliações</TableCell>
-                        <TableCell align="center">T.M. de Atendimento</TableCell>
+                        <TableCell align="center">Abertos</TableCell>
+                        <TableCell align="center">Finalizados</TableCell>
+                        <TableCell align="center">Total (Período)</TableCell>
+                        <TableCell align="center">T.M. Atendimento</TableCell>
                         <TableCell align="center">Status (Atual)</TableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
                     { renderList() }
-                    {/* <TableRow>
-                        <TableCell>Nome 4</TableCell>
-                        <TableCell align="center">10</TableCell>
-                        <TableCell align="center">10 minutos</TableCell>
-                        <TableCell align="center">
-                            <CheckCircleIcon className={classes.off} />
-                        </TableCell>
-                    </TableRow>
-                    <TableRow>
-                        <TableCell>Nome 5</TableCell>
-                        <TableCell align="center">10</TableCell>
-                        <TableCell align="center">10 minutos</TableCell>
-                        <TableCell align="center">
-                            <CheckCircleIcon className={classes.on} />
-                        </TableCell>
-                    </TableRow> */}
                 </TableBody>
             </Table>
         </TableContainer>

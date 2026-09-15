@@ -5,6 +5,7 @@ import CreateAuditLogService from "../../../services/AuditServices/CreateAuditLo
 
 jest.mock("../../../services/TicketServices/ShowTicketService");
 jest.mock("../../../services/AuditServices/CreateAuditLogService");
+jest.mock("../../../services/TicketServices/CreateTicketLifecycleEventService", () => jest.fn());
 jest.mock("../../../helpers/CheckContactOpenTickets", () => jest.fn());
 jest.mock("../../../helpers/SetTicketMessagesAsRead", () => jest.fn());
 

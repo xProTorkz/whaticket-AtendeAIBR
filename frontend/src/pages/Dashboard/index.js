@@ -39,6 +39,9 @@ import ButtonWithSpinner from "../../components/ButtonWithSpinner";
 
 import CardCounter from "../../components/Dashboard/CardCounter";
 import TableAttendantsStatus from "../../components/Dashboard/TableAttendantsStatus";
+import TableQueuesStatus from "../../components/Dashboard/TableQueuesStatus";
+import TableSlaAlerts from "../../components/Dashboard/TableSlaAlerts";
+import WarningIcon from "@material-ui/icons/Warning";
 import { isArray } from "lodash";
 
 import useDashboard from "../../hooks/useDashboard";
@@ -166,12 +169,23 @@ const useStyles = makeStyles((theme) => ({
     backgroundColor: "#bd3c58",
     color: "#eee",
   },
+  cardSla: {
+    padding: theme.spacing(2),
+    display: "flex",
+    overflow: "auto",
+    flexDirection: "column",
+    height: "100%",
+    backgroundColor: "#c62828",
+    color: "#eee",
+  },
 }));
 
 const Dashboard = () => {
   const classes = useStyles();
   const [counters, setCounters] = useState({});
   const [attendants, setAttendants] = useState([]);
+  const [queues, setQueues] = useState([]);
+  const [waitingAlertTickets, setWaitingAlertTickets] = useState([]);
   const [filterType, setFilterType] = useState(1);
   const [period, setPeriod] = useState(0);
   const [companyDueDate, setCompanyDueDate] = useState();
@@ -241,12 +255,10 @@ const Dashboard = () => {
 
 
 
-    setCounters(data.counters);
-    if (isArray(data.attendants)) {
-      setAttendants(data.attendants);
-    } else {
-      setAttendants([]);
-    }
+    setCounters(data.counters || {});
+    setAttendants(isArray(data.attendants) ? data.attendants : []);
+    setQueues(isArray(data.queues) ? data.queues : []);
+    setWaitingAlertTickets(isArray(data.waitingAlertTickets) ? data.waitingAlertTickets : []);
 
     setLoading(false);
   }
@@ -273,10 +285,12 @@ const Dashboard = () => {
   };
 
   function formatTime(minutes) {
-    return moment()
-      .startOf("day")
-      .add(minutes, "minutes")
-      .format("HH[h] mm[m]");
+    if (minutes === null || minutes === undefined || isNaN(minutes)) {
+      return "--";
+    }
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return h > 0 ? `${h}h ${m}m` : `${m}m`;
   }
 
   function renderFilters() {
@@ -574,6 +588,43 @@ const Dashboard = () => {
             </Paper>
           </Grid>
 
+          {/* TICKETS ACIMA DO SLA */}
+          <Grid item xs={12} sm={6} md={4}>
+            <Paper
+              className={classes.cardSla}
+              style={{ overflow: "hidden" }}
+              elevation={6}
+            >
+              <Grid container spacing={3}>
+                <Grid item xs={8}>
+                  <Typography
+                    component="h3"
+                    variant="h6"
+                    paragraph
+                  >
+                    Acima do SLA
+                  </Typography>
+                  <Grid item>
+                    <Typography
+                      component="h1"
+                      variant="h4"
+                    >
+                      {counters.waitingAboveSla || 0}
+                    </Typography>
+                  </Grid>
+                </Grid>
+                <Grid item xs={4}>
+                  <WarningIcon
+                    style={{
+                      fontSize: 100,
+                      color: "#b71c1c",
+                    }}
+                  />
+                </Grid>
+              </Grid>
+            </Paper>
+          </Grid>
+
           {/* FILTROS */}
           <Grid item xs={12} sm={6} md={4}>
             <FormControl className={classes.selectContainer}>
@@ -604,6 +655,13 @@ const Dashboard = () => {
             </ButtonWithSpinner>
           </Grid>
 
+          {/* TABELA DE ALERTAS DE SLA */}
+          {waitingAlertTickets.length > 0 && (
+            <Grid item xs={12}>
+              <TableSlaAlerts alerts={waitingAlertTickets} />
+            </Grid>
+          )}
+
           {/* DASHBOARD ATENDIMENTOS HOJE */}
           <Grid item xs={12}>
             <Paper className={classes.fixedHeightPaper}>
@@ -611,7 +669,12 @@ const Dashboard = () => {
             </Paper>
           </Grid>
 
-          {/* USUARIOS ONLINE */}
+          {/* METRICAS POR FILA / DEPARTAMENTO */}
+          <Grid item xs={12}>
+            <TableQueuesStatus queues={queues} loading={loading} />
+          </Grid>
+
+          {/* USUARIOS ONLINE E ATENDENTES */}
           <Grid item xs={12}>
             {attendants.length ? (
               <TableAttendantsStatus

@@ -36,6 +36,10 @@ class Queue extends Model<Queue> {
   @Column
   greetingMessage: string;
 
+  @Default(15)
+  @Column
+  sla: number;
+
   @Default(1)
   @ForeignKey(() => Company)
   @Column

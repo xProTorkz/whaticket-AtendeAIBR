@@ -4,6 +4,7 @@ import { getIO } from "../../libs/socket";
 import Ticket from "../../models/Ticket";
 import ShowTicketService from "./ShowTicketService";
 import CreateAuditLogService from "../AuditServices/CreateAuditLogService";
+import CreateTicketLifecycleEventService from "./CreateTicketLifecycleEventService";
 import AppError from "../../errors/AppError";
 
 interface TicketData {
@@ -59,7 +60,7 @@ const UpdateTicketService = async ({
   }
 
   const oldStatus = ticket.status;
-  const oldUserId = ticket.user?.id;
+  const oldUserId = ticket.user?.id || ticket.userId;
   const oldQueueId = ticket.queueId;
   const oldWhatsappId = ticket.whatsappId;
 
@@ -67,23 +68,129 @@ const UpdateTicketService = async ({
     await CheckContactOpenTickets(ticket.contact.id, ticket.whatsappId);
   }
 
-  await ticket.update({
+  const now = new Date();
+  const updateFields: any = {
     status,
     queueId,
     userId
-  });
+  };
+
+  let waitDurationSeconds: number | null = null;
+  let supportDurationSeconds: number | null = null;
+
+  if (status && status !== oldStatus) {
+    if (status === "open" && oldStatus === "pending") {
+      updateFields.startedAt = now;
+      const refWait = ticket.queueEnteredAt || ticket.createdAt;
+      if (refWait) {
+        waitDurationSeconds = Math.max(
+          0,
+          Math.round((now.getTime() - new Date(refWait).getTime()) / 1000)
+        );
+      }
+    } else if (status === "closed") {
+      updateFields.closedAt = now;
+      const refStart = ticket.startedAt || ticket.createdAt;
+      if (refStart) {
+        supportDurationSeconds = Math.max(
+          0,
+          Math.round((now.getTime() - new Date(refStart).getTime()) / 1000)
+        );
+      }
+    } else if (oldStatus === "closed") {
+      updateFields.closedAt = null;
+      if (status === "pending") {
+        updateFields.queueEnteredAt = now;
+        updateFields.startedAt = null;
+      } else if (status === "open") {
+        updateFields.startedAt = now;
+      }
+    }
+  }
+
+  if (queueId !== undefined && queueId !== oldQueueId) {
+    updateFields.queueEnteredAt = now;
+  }
 
   if (whatsappId) {
-    await ticket.update({
-      whatsappId
+    updateFields.whatsappId = whatsappId;
+  }
+
+  await ticket.update(updateFields);
+  await ticket.reload();
+
+  const actorIdNumber = actorUser?.id ? Number(actorUser.id) : undefined;
+
+  // Registro do Ciclo Real de Atendimento (TicketLifecycleEvents)
+  if (status && status !== oldStatus) {
+    if (status === "open" && oldStatus === "pending") {
+      await CreateTicketLifecycleEventService({
+        ticketId: ticket.id,
+        companyId: ticket.companyId,
+        userId: actorIdNumber || (userId ? Number(userId) : oldUserId),
+        queueId: queueId !== undefined ? (queueId ? Number(queueId) : null) : oldQueueId,
+        type: "started",
+        waitDurationSeconds,
+        details: JSON.stringify({ fromStatus: oldStatus, toStatus: status })
+      });
+    } else if (status === "closed") {
+      await CreateTicketLifecycleEventService({
+        ticketId: ticket.id,
+        companyId: ticket.companyId,
+        userId: actorIdNumber || oldUserId,
+        queueId: oldQueueId,
+        type: "closed",
+        supportDurationSeconds,
+        details: JSON.stringify({ fromStatus: oldStatus, toStatus: "closed" })
+      });
+    } else if (oldStatus === "closed") {
+      await CreateTicketLifecycleEventService({
+        ticketId: ticket.id,
+        companyId: ticket.companyId,
+        userId: actorIdNumber,
+        queueId: queueId !== undefined ? (queueId ? Number(queueId) : null) : oldQueueId,
+        type: "reopened",
+        details: JSON.stringify({ fromStatus: "closed", toStatus: status })
+      });
+      if (status === "pending") {
+        await CreateTicketLifecycleEventService({
+          ticketId: ticket.id,
+          companyId: ticket.companyId,
+          userId: actorIdNumber,
+          queueId: queueId !== undefined ? (queueId ? Number(queueId) : null) : oldQueueId,
+          type: "queue_entered",
+          details: "Entrada na fila após reabertura"
+        });
+      }
+    }
+  }
+
+  if (queueId !== undefined && queueId !== oldQueueId) {
+    await CreateTicketLifecycleEventService({
+      ticketId: ticket.id,
+      companyId: ticket.companyId,
+      userId: actorIdNumber,
+      queueId: queueId ? Number(queueId) : null,
+      previousQueueId: oldQueueId || null,
+      type: "queue_transferred",
+      details: JSON.stringify({ oldQueueId, newQueueId: queueId })
     });
   }
 
-  await ticket.reload();
+  if (userId !== undefined && userId !== oldUserId) {
+    const isNewAssign = !oldUserId && userId;
+    await CreateTicketLifecycleEventService({
+      ticketId: ticket.id,
+      companyId: ticket.companyId,
+      userId: userId ? Number(userId) : null,
+      previousUserId: oldUserId || null,
+      queueId: ticket.queueId || null,
+      type: isNewAssign ? "assigned" : "user_transferred",
+      details: JSON.stringify({ oldUserId, newUserId: userId })
+    });
+  }
 
   // Trilha de Auditoria: registra eventos críticos de atendimento
-  const actorIdNumber = actorUser?.id ? Number(actorUser.id) : undefined;
-
   if (status && status !== oldStatus) {
     let action = "TICKET_STATUS_CHANGE";
     if (status === "closed") action = "TICKET_CLOSE";

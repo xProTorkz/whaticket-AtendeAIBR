@@ -23,6 +23,7 @@ import PipelineStage from "../models/PipelineStage";
 import Deal from "../models/Deal";
 import DealTimeline from "../models/DealTimeline";
 import CrmConfig from "../models/CrmConfig";
+import TicketLifecycleEvent from "../models/TicketLifecycleEvent";
 
 // eslint-disable-next-line
 const dbConfig = require("../config/database");
@@ -53,7 +54,8 @@ const models = [
   PipelineStage,
   Deal,
   DealTimeline,
-  CrmConfig
+  CrmConfig,
+  TicketLifecycleEvent
 ];
 
 sequelize.addModels(models);

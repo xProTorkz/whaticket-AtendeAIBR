@@ -22,6 +22,7 @@ import Company from "./Company";
 import TicketNote from "./TicketNote";
 import Tag from "./Tag";
 import TicketTag from "./TicketTag";
+import TicketLifecycleEvent from "./TicketLifecycleEvent";
 
 @Table
 class Ticket extends Model<Ticket> {
@@ -89,6 +90,18 @@ class Ticket extends Model<Ticket> {
   @Column
   channel: string;
 
+  @Column
+  queueEnteredAt: Date;
+
+  @Column
+  startedAt: Date;
+
+  @Column
+  firstResponseAt: Date;
+
+  @Column
+  closedAt: Date;
+
   @HasMany(() => Message)
   messages: Message[];
 
@@ -97,6 +110,9 @@ class Ticket extends Model<Ticket> {
 
   @BelongsToMany(() => Tag, () => TicketTag)
   tags: Tag[];
+
+  @HasMany(() => TicketLifecycleEvent)
+  lifecycleEvents: TicketLifecycleEvent[];
 }
 
 export default Ticket;
