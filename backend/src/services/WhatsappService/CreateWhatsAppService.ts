@@ -52,6 +52,9 @@ const CreateWhatsAppService = async ({
     throw new AppError(err.message);
   }
 
+  const { assertCanCreateResource } = await import("../PlanServices/EntitlementService");
+  await assertCanCreateResource(companyId, "connections");
+
   const whatsappFound = await Whatsapp.findOne({
     where: { companyId }
   });

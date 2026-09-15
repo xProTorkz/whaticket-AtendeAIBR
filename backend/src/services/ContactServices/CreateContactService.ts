@@ -30,6 +30,9 @@ const CreateContactService = async ({
     throw new AppError("ERR_DUPLICATED_CONTACT");
   }
 
+  const { assertCanCreateResource } = await import("../PlanServices/EntitlementService");
+  await assertCanCreateResource(companyId, "contacts");
+
   const contact = await Contact.create(
     {
       name,

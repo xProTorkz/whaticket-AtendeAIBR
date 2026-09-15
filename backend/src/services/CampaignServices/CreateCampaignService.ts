@@ -42,6 +42,10 @@ const CreateCampaignService = async ({
     throw new AppError(err.message, 400);
   }
 
+  const { assertCanCreateResource, assertHasCapability } = await import("../PlanServices/EntitlementService");
+  await assertHasCapability(companyId, "campaigns");
+  await assertCanCreateResource(companyId, "campaigns");
+
   const {
     name,
     status = "INATIVA",

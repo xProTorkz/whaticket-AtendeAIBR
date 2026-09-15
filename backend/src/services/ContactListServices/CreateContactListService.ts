@@ -21,6 +21,9 @@ const CreateContactListService = async ({
     throw new AppError(err.message, 400);
   }
 
+  const { assertCanCreateResource } = await import("../PlanServices/EntitlementService");
+  await assertCanCreateResource(companyId, "contactLists");
+
   const contactList = await ContactList.create({
     name,
     companyId

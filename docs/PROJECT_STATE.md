@@ -188,3 +188,52 @@ Implementação completa do ciclo de vida dos tickets, histórico persistente de
   - Evento de Socket.IO segregado por tenant: `company-${companyId}-ticket-lifecycle`.
   - Endpoint REST seguro: `GET /tickets/:ticketId/lifecycle` com validação de permissão e isolamento por empresa.
 
+## Camada de Agendamentos, Campanhas e Listas de Contatos (Issue #16)
+- **Infraestrutura Assíncrona com BullMQ & Redis**:
+  - Workers dedicados: `ScheduleWorker` (jobId determinístico `schedule-${id}`) e `CampaignWorker` (jobId determinístico `campaign-${campaignId}-item-${itemId}`).
+  - Retentativas com backoff exponencial e proteção contra duplicidade em reinício de worker/servidor.
+  - Controle dinâmico de cadência e janela operacional de envio (ex: 08:00 às 20:00) com reagendamento automático fora do horário.
+  - Respeito a opt-out (`optOut: true`) para supressão automática em disparos promocionais sem interromper suporte humano.
+  - Métricas consolidadas persistentes em `CampaignShippings` (`total`, `pendentes`, `enviados`, `falhas`, `cancelados`).
+
+## Camada Oficial de Integrações Externas & Webhooks (Issue #17)
+- **API Pública Versionada (`/api/v1`)**:
+  - Contratos públicos próprios desacoplados de rotas internas (`/contacts`, `/messages/send`, `/tickets`, `/crm/deals`, `/webhooks/inbound/:source`).
+  - Isolamento rigoroso por credencial: o `companyId` nunca é recebido do cliente, sendo estritamente derivado do token de API autenticado (`req.user.companyId = apiKey.companyId`).
+  - Chaves de API (`ApiKey`) armazenadas com hash SHA-256 no banco e escopos granulares (`contacts:read`, `messages:send`, etc.).
+  - Idempotência real via headers `Idempotency-Key` / `X-Idempotency-Key` com cache em banco e cabeçalho `X-Cache-Lookup: HIT`.
+  - Rate Limiting por chave/tenant com headers padrão RFC (`X-RateLimit-*`).
+- **Webhooks de Saída Assinados & Engine BullMQ**:
+  - Assinatura criptográfica HMAC-SHA256 e replay protection via timestamp nos cabeçalhos `X-Hub-Signature-256` e `X-Signature-Timestamp`.
+  - Worker assíncrono `WebhookWorker` com fila `webhook-dispatch`.
+  - Retentativas exponenciais com Dead-Letter Queue (DLQ) para erros definitivos (4xx ou esgotamento de 5 tentativas).
+- **Conectores & Documentação**:
+  - Guia oficial do n8n (`docs/integrations/n8n.md`) com payloads e curls.
+  - Adaptador ManyChat baseado estritamente na OpenAPI oficial da ManyChat v1 (`ManyChatAdapter.ts`).
+  - Adaptador desacoplado para SharkBot (`SharkBotAdapter.ts`) documentando ausência de spec oficial do fornecedor.
+  - Painel administrativo no frontend em `/integrations`.
+
+## Transformação SaaS Comercializável & Entitlements (Issue #18)
+- **Sistema Real de Planos e Entitlements**:
+  - Zero acoplamento por nomes comerciais: validações via `capabilities` e limites numéricos (`limits`), nunca por `if (plan === "Pro")`.
+  - Limites configuráveis por tenant: `maxUsers`, `maxConnections`, `maxContacts`, `maxCampaigns`, `maxContactLists`, `maxSchedules`, `maxApiKeys`, `maxWebhooks`, `maxStorageMb`, `maxAiTokens`.
+  - Validação server-side infalível em serviços e middlewares (`EntitlementService.ts`, `checkCapability.ts`, `checkResourceLimit.ts`, `checkTenantActive.ts`).
+  - Downgrade Seguro: redução de plano não apaga dados; novas criações são bloqueadas e o status de overLimit é exposto para ajuste administrativo.
+  - Trial configurável por tenant com expiração previsível e suspensão de operações sem perda de dados.
+  - Suspensão de empresas com bloqueio imediato de acesso e execução.
+- **Painel SuperAdmin SaaS (`/superadmin/companies` e `/companies`)**:
+  - Listagem completa de empresas com plano, status da assinatura, dias de trial, consumo em tempo real e percentuais.
+  - Alertas automáticos para empresas com consumo maior ou igual a 80% ou excedentes por downgrade.
+  - Modais para troca de plano, overrides customizados (`customLimits`, `customCapabilities`) e suspensão/ativação.
+  - Proteção estrita: admins comuns de tenant não conseguem alterar o próprio plano ou limites (HTTP 403 `ERR_CANNOT_CHANGE_OWN_PLAN`).
+- **Onboarding Guiado (`/onboarding`)**:
+  - Fluxo de 9 etapas: Dados da Empresa, Identidade Visual, Perfil Admin, Equipe, Conexão WhatsApp, Filas, Funil CRM, Teste e Conclusão.
+  - Persistência contínua do progresso no banco de dados (`TenantOnboarding`), permitindo pausar e continuar depois.
+- **Branding Multi-Tenant & White-Label (`/branding`)**:
+  - Configuração isolada por empresa: `brandName`, `brandLogo`, `primaryColor`, `secondaryColor`, `brandFavicon`, `loginMessage`.
+  - Endpoints autenticado e público para login white-label sem vazamento entre empresas.
+- **Arquitetura Billing-Ready Desacoplada**:
+  - Interface canônica `IBillingProvider` com estados canônicos de assinatura (`trialing`, `active`, `past_due`, `unpaid`, `suspended`, `canceled`).
+  - Provedor padrão `ManualBillingProvider` e centralizador `BillingService`, prontos para acoplamento futuro de Mercado Pago, Asaas ou Stripe.
+
+

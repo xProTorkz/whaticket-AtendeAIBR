@@ -34,6 +34,10 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     throw new AppError(err.message, 400);
   }
 
+  const { assertCanCreateResource, assertHasCapability } = await import("../services/PlanServices/EntitlementService");
+  await assertHasCapability(companyId, "apiIntegrations");
+  await assertCanCreateResource(companyId, "webhooks");
+
   const { name, url, events } = req.body;
 
   // Generate signing secret: whsec_<random_hex>

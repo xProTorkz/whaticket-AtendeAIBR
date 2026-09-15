@@ -472,6 +472,20 @@ const MainListItems = (props) => {
             />
 
             <ListItemLink
+              to="/subscription"
+              primary="Minha Assinatura"
+              icon={<LocalAtmIcon />}
+            />
+
+            {user.super && (
+              <ListItemLink
+                to="/companies"
+                primary="Empresas (SaaS)"
+                icon={<AccountTreeOutlinedIcon />}
+              />
+            )}
+
+            <ListItemLink
               to="/settings"
               primary={i18n.t("mainDrawer.listItems.settings")}
               icon={<SettingsOutlinedIcon />}

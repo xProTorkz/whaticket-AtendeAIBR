@@ -58,8 +58,13 @@ const CreateUserService = async ({
     throw new AppError(err.message);
   }
 
-  let canonicalProfile = profile;
   let superAdminFlag = Boolean(isSuperAdmin);
+  if (!superAdminFlag) {
+    const { assertCanCreateResource } = await import("../PlanServices/EntitlementService");
+    await assertCanCreateResource(companyId || 1, "users");
+  }
+
+  let canonicalProfile = profile;
 
   if (canonicalProfile === "superadmin") {
     canonicalProfile = "admin";

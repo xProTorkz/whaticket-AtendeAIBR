@@ -43,6 +43,14 @@ const AuthUserService = async ({
     throw new AppError("ERR_INVALID_CREDENTIALS", 401);
   }
 
+  if (!user.isSuperAdmin && user.companyId) {
+    const Company = (await import("../../models/Company")).default;
+    const company = await Company.findByPk(user.companyId);
+    if (company && (company.status === false || company.subscriptionStatus === "suspended")) {
+      throw new AppError("ERR_TENANT_SUSPENDED", 403);
+    }
+  }
+
   const token = createAccessToken(user);
   const refreshToken = createRefreshToken(user);
 

@@ -31,6 +31,10 @@ const CreateScheduleService = async ({
     throw new AppError(err.message, 400);
   }
 
+  const { assertCanCreateResource, assertHasCapability } = await import("../PlanServices/EntitlementService");
+  await assertHasCapability(companyId, "schedules");
+  await assertCanCreateResource(companyId, "schedules");
+
   const contact = await Contact.findOne({
     where: { id: contactId, companyId }
   });

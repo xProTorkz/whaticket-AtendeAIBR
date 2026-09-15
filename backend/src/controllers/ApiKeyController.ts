@@ -42,6 +42,10 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     throw new AppError(err.message, 400);
   }
 
+  const { assertCanCreateResource, assertHasCapability } = await import("../services/PlanServices/EntitlementService");
+  await assertHasCapability(companyId, "apiIntegrations");
+  await assertCanCreateResource(companyId, "apiKeys");
+
   const { name, scopes, expiresAt } = req.body;
 
   // Generate high-entropy API key: atd_live_<48 hex chars>

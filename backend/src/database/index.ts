@@ -34,6 +34,9 @@ import ApiKey from "../models/ApiKey";
 import ApiIdempotencyKey from "../models/ApiIdempotencyKey";
 import Webhook from "../models/Webhook";
 import WebhookDelivery from "../models/WebhookDelivery";
+import Plan from "../models/Plan";
+import TenantOnboarding from "../models/TenantOnboarding";
+import TenantSubscription from "../models/TenantSubscription";
 
 // eslint-disable-next-line
 const dbConfig = require("../config/database");
@@ -75,7 +78,10 @@ const models = [
   ApiKey,
   ApiIdempotencyKey,
   Webhook,
-  WebhookDelivery
+  WebhookDelivery,
+  Plan,
+  TenantOnboarding,
+  TenantSubscription
 ];
 
 sequelize.addModels(models);

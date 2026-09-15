@@ -7,6 +7,19 @@ interface CompanyData {
   name?: string;
   status?: boolean;
   plan?: string;
+  planId?: number;
+  subscriptionStatus?: string;
+  isTrial?: boolean;
+  trialEndsAt?: Date | string;
+  gracePeriodUntil?: Date | string;
+  customLimits?: any;
+  customCapabilities?: any;
+  brandName?: string;
+  brandLogo?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  brandFavicon?: string;
+  loginMessage?: string;
 }
 
 interface Request {
@@ -30,13 +43,7 @@ const UpdateCompanyService = async ({
     throw new AppError(err.message, 400);
   }
 
-  const { name, status, plan } = companyData;
-
-  await company.update({
-    name,
-    status,
-    plan
-  });
+  await company.update(companyData);
 
   return company;
 };

@@ -18,7 +18,8 @@ import MessagesAPI from "../pages/MessagesAPI/";
 import Helps from "../pages/Helps/";
 import ContactLists from "../pages/ContactLists/";
 import ContactListItems from "../pages/ContactListItems/";
-// import Companies from "../pages/Companies/";
+import Companies from "../pages/Companies/";
+import Onboarding from "../pages/Onboarding/";
 import QuickMessages from "../pages/QuickMessages/";
 import Kanban from "../pages/Kanban";
 import { AuthProvider } from "../context/Auth/AuthContext";
@@ -145,6 +146,18 @@ const Routes = () => {
                   exact
                   path="/subscription"
                   component={Subscription}
+                  isPrivate
+                />
+                <Route
+                  exact
+                  path="/onboarding"
+                  component={Onboarding}
+                  isPrivate
+                />
+                <Route
+                  exact
+                  path="/companies"
+                  component={Companies}
                   isPrivate
                 />
                 <Route exact path="/chats/:id?" component={InternalChat} isPrivate />

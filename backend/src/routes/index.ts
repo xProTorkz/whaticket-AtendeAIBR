@@ -25,6 +25,11 @@ import campaignSettingRoutes from "./campaignSettingRoutes";
 import publicApiRoutes from "./publicApiRoutes";
 import apiKeyRoutes from "./apiKeyRoutes";
 import webhookRoutes from "./webhookRoutes";
+import onboardingRoutes from "./onboardingRoutes";
+import brandingRoutes from "./brandingRoutes";
+import planRoutes from "./planRoutes";
+import superAdminRoutes from "./superAdminRoutes";
+import subscriptionRoutes from "./subscriptionRoutes";
 
 const routes = Router();
 
@@ -55,5 +60,10 @@ routes.use("/api/messages", apiRoutes);
 routes.use("/api/v1", publicApiRoutes);
 routes.use(apiKeyRoutes);
 routes.use(webhookRoutes);
+routes.use(onboardingRoutes);
+routes.use(brandingRoutes);
+routes.use(planRoutes);
+routes.use(superAdminRoutes);
+routes.use(subscriptionRoutes);
 
 export default routes;

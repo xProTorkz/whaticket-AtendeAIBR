@@ -11,6 +11,7 @@ import CompaniesManager from "../../components/CompaniesManager";
 import PlansManager from "../../components/PlansManager";
 import HelpsManager from "../../components/HelpsManager";
 import Options from "../../components/Settings/Options";
+import BrandingSettings from "../../components/BrandingSettings";
 
 import { i18n } from "../../translate/i18n.js";
 import { toast } from "react-toastify";
@@ -165,6 +166,7 @@ const SettingsCustom = () => {
           className={classes.tab}
         >
           <Tab label="Opções" value={"options"} />
+          <Tab label="Identidade Visual" value={"branding"} />
           {schedulesEnabled && <Tab label="Horários" value={"schedules"} />}
           {isSuper() ? <Tab label="Empresas" value={"companies"} /> : null}
           {isSuper() ? <Tab label="Planos" value={"plans"} /> : null}
@@ -218,6 +220,9 @@ const SettingsCustom = () => {
               </TabPanel>
             )}
           />
+          <TabPanel className={classes.container} value={tab} name={"branding"}>
+            <BrandingSettings />
+          </TabPanel>
           <TabPanel className={classes.container} value={tab} name={"options"}>
             <Options
               settings={settings}
